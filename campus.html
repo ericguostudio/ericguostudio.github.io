@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus 3D · Ulink IB</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --blue:#1F4E8C; --blue-mid:#3368C0; --blue-deep:#163a6b; --coral:#E0734A;
+      --text:#1d1d1f; --sub:#6e6e73; --line:rgba(36,84,164,.12);
+    }
+    *,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
+    html,body{ width:100%; height:100%; overflow:hidden;
+      font-family:'Plus Jakarta Sans',sans-serif; color:var(--text); background:#eef3fb; }
+    #app{ position:fixed; inset:0; }
+    #app canvas{ display:block; }
+
+    .labels{ position:absolute; inset:0; pointer-events:none; }
+    .pin{
+      width:28px; height:28px; border-radius:50%;
+      background:var(--blue); color:#fff;
+      font:600 12.5px/28px 'Plus Jakarta Sans'; text-align:center;
+      box-shadow:0 5px 14px rgba(36,84,164,.42), 0 0 0 3px rgba(255,255,255,.92);
+      pointer-events:auto; cursor:pointer;
+      transform:translateY(0); transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .25s, box-shadow .25s;
+      will-change:transform;
+    }
+    .pin.flat{ width:24px; height:24px; line-height:24px; font-size:11px; background:var(--blue-mid); }
+    .pin:hover,.pin.hover{ transform:scale(1.18) translateY(-2px); }
+    .pin.active{ background:var(--coral); transform:scale(1.34) translateY(-4px);
+      box-shadow:0 9px 22px rgba(224,115,74,.6), 0 0 0 4px #fff; }
+    /* room labels for the floor-1 plans */
+    .room-lbl{ display:flex; flex-direction:column; align-items:center; line-height:1.05; padding:.26rem .5rem; border-radius:9px;
+      background:rgba(255,255,255,.66); backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,.72);
+      box-shadow:0 2px 7px rgba(31,58,108,.16); color:var(--blue-deep);
+      font:700 .62rem 'Plus Jakarta Sans'; letter-spacing:.01em; white-space:nowrap; pointer-events:none; }
+    .room-lbl small{ font-weight:500; font-size:.5rem; color:var(--sub); margin-top:1px; }
+    .room-lbl.room-exitlbl{ background:rgba(36,84,164,.9); color:#fff; border-color:rgba(255,255,255,.5); }
+    .floor-title{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:1.2rem; color:var(--blue-deep);
+      background:linear-gradient(150deg, rgba(255,255,255,.62), rgba(255,255,255,.3)); backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,.66); box-shadow:0 6px 18px rgba(31,58,108,.16);
+      padding:.28rem .85rem; border-radius:12px; white-space:nowrap; pointer-events:none; }
+
+    .topbar{ position:fixed; top:0; left:0; right:0; z-index:20;
+      display:flex; align-items:center; justify-content:space-between; padding:1.15rem 1.6rem;
+      background:linear-gradient(180deg, rgba(238,243,251,.92) 0%, rgba(238,243,251,0) 100%);
+      pointer-events:none; }
+    .brand{ display:flex; flex-direction:column; gap:2px; pointer-events:auto; }
+    .brand .u{ font-weight:700; font-size:1.18rem; letter-spacing:.3em; color:var(--blue); line-height:1; }
+    .brand .cn{ font-size:.58rem; font-weight:500; letter-spacing:.16em; color:var(--blue); opacity:.5; }
+    .toptag{ font-size:.62rem; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); opacity:.65; font-weight:600; pointer-events:auto; }
+
+    /* ── Top slide-bar (mode switch) ── */
+    .modebar{ position:fixed; top:1.05rem; left:50%; transform:translateX(-50%); z-index:21;
+      display:flex; gap:2px; padding:5px; border-radius:980px; isolation:isolate;
+      background:linear-gradient(150deg, rgba(255,255,255,.34), rgba(255,255,255,.12));
+      backdrop-filter:url(#liquid-glass) blur(8px) saturate(185%); -webkit-backdrop-filter:blur(14px) saturate(185%);
+      border:1px solid rgba(255,255,255,.55);
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.9), 0 10px 30px rgba(31,58,108,.16);
+      opacity:0; animation:slideDown .8s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    .modebar .mode{ position:relative; z-index:1; border:none; background:transparent; cursor:pointer;
+      padding:.52rem 1.05rem; border-radius:980px; font:600 .72rem 'Plus Jakarta Sans'; letter-spacing:.02em;
+      color:var(--blue-deep); white-space:nowrap; transition:color .3s; }
+    .modebar .mode.active{ color:#fff; }
+    .mode-ind{ position:absolute; top:5px; bottom:5px; left:5px; width:80px; z-index:0; border-radius:980px;
+      background:linear-gradient(150deg,#3168C8,var(--blue) 60%,var(--blue-deep));
+      box-shadow:0 4px 14px rgba(36,84,164,.4), inset 0 1px 0 rgba(255,255,255,.25);
+      transition:left .45s cubic-bezier(.34,1.4,.5,1), width .45s cubic-bezier(.34,1.4,.5,1); }
+    @keyframes slideDown{ from{opacity:0; transform:translateX(-50%) translateY(-14px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
+
+    /* ── Liquid-glass sidebar ── */
+    .glass-defs{ position:absolute; width:0; height:0; pointer-events:none; }
+    .guide{ position:fixed; top:50%; left:1.4rem; transform:translateY(-50%); z-index:18; width:242px; max-height:78vh;
+      border-radius:28px; isolation:isolate;
+      background:linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.07));
+      backdrop-filter:url(#liquid-glass) blur(2px) saturate(195%) brightness(1.08);
+      -webkit-backdrop-filter:blur(12px) saturate(195%) brightness(1.08);
+      border:1px solid rgba(255,255,255,.55);
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,.95),
+        inset 0 -12px 30px rgba(255,255,255,.20),
+        inset 1px 0 1px rgba(255,255,255,.45),
+        inset -1px 0 1px rgba(255,255,255,.45),
+        0 16px 50px rgba(31,58,108,.22),
+        0 4px 14px rgba(31,58,108,.12);
+      display:flex; flex-direction:column; overflow:hidden;
+      opacity:0; animation:slideL .8s cubic-bezier(.16,1,.3,1) .3s forwards; }
+    .guide::before{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
+      background:
+        linear-gradient(150deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,0) 34%),
+        radial-gradient(130% 80% at 16% -8%, rgba(255,255,255,.55), rgba(255,255,255,0) 52%); }
+    .guide::after{ content:''; position:absolute; left:-28%; top:-22%; width:78%; height:60%; z-index:0; pointer-events:none;
+      background:radial-gradient(closest-side, rgba(255,255,255,.6), rgba(255,255,255,0) 72%);
+      filter:blur(7px); animation:sheen 11s ease-in-out infinite; }
+    .guide-h, .guide-list{ position:relative; z-index:1; }
+    @keyframes sheen{
+      0%{ transform:translate(0,0) scale(1); opacity:.75; }
+      50%{ transform:translate(210px,440px) scale(1.3); opacity:.3; }
+      100%{ transform:translate(0,0) scale(1); opacity:.75; } }
+    .guide-h{ padding:1.05rem 1.2rem .78rem; border-bottom:1px solid rgba(255,255,255,.5); box-shadow:0 1px 0 rgba(31,58,108,.06); }
+    .guide-h .t{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:1.55rem; color:var(--blue-deep); line-height:1; text-shadow:0 1px 0 rgba(255,255,255,.55); }
+    .guide-h .s{ font-size:.6rem; letter-spacing:.1em; color:var(--sub); margin-top:3px; text-transform:uppercase; }
+    .guide-list{ overflow-y:auto; padding:.5rem; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.6) transparent; }
+    .guide-list::-webkit-scrollbar{ width:6px; }
+    .guide-list::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.55); border-radius:3px; }
+    .gitem{ display:flex; align-items:center; gap:.7rem; padding:.5rem .6rem; border-radius:14px; cursor:pointer;
+      transition:background .25s, box-shadow .25s, transform .25s; pointer-events:auto; }
+    .gitem:hover{ background:rgba(255,255,255,.5); transform:translateX(2px);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.85), 0 3px 10px rgba(31,58,108,.12); }
+    .gitem.active{ background:rgba(255,255,255,.66);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.95), 0 4px 12px rgba(36,84,164,.2); }
+    .gitem .n{ flex:none; width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; font:600 11px/22px 'Plus Jakarta Sans'; text-align:center; box-shadow:0 2px 6px rgba(36,84,164,.35); }
+    .gitem.active .n{ background:var(--coral); }
+    .gitem .tx{ min-width:0; }
+    .gitem .cn{ font-size:.74rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gitem .en{ font-size:.58rem; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .card{ position:fixed; top:50%; right:1.4rem; transform:translate(120%,-50%); z-index:19; width:332px; max-height:80vh;
+      border-radius:28px; isolation:isolate;
+      background:linear-gradient(150deg, rgba(255,255,255,.40), rgba(255,255,255,.18));
+      backdrop-filter:url(#liquid-glass) blur(3px) saturate(185%) brightness(1.06);
+      -webkit-backdrop-filter:blur(15px) saturate(185%);
+      border:1px solid rgba(255,255,255,.6);
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,.95),
+        inset 0 -12px 32px rgba(255,255,255,.18),
+        0 24px 70px rgba(31,58,108,.24),
+        0 5px 16px rgba(31,58,108,.12);
+      padding:1.6rem 1.6rem 1.5rem; overflow-y:auto;
+      transition:transform .6s cubic-bezier(.16,1,.3,1), opacity .5s; opacity:0; }
+    .card::before{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
+      background:linear-gradient(150deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,0) 32%); }
+    .card > *{ position:relative; z-index:1; }
+    .card.show{ transform:translate(0,-50%); opacity:1; }
+    .card-close{ position:absolute; top:1rem; right:1rem; z-index:2; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.7); background:rgba(255,255,255,.5); backdrop-filter:blur(6px); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:1rem; transition:background .2s,color .2s; }
+    .card-close:hover{ background:var(--blue); color:#fff; border-color:var(--blue); }
+    .card-num{ width:38px; height:38px; border-radius:50%; background:var(--coral); color:#fff; font:700 16px/38px 'Plus Jakarta Sans'; text-align:center; box-shadow:0 6px 16px rgba(224,115,74,.34); margin-bottom:1rem; }
+    .card-en{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:1.85rem; line-height:1.05; color:var(--blue); letter-spacing:-.01em; }
+    .card-cn{ font-size:.9rem; font-weight:600; color:var(--text); margin-top:.25rem; }
+    .card-div{ height:1px; background:var(--line); margin:1.15rem 0 1rem; }
+    .card-lbl{ font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); font-weight:600; opacity:.7; margin-bottom:.7rem; }
+    .fac{ display:flex; align-items:baseline; gap:.6rem; padding:.5rem 0; border-bottom:1px dashed var(--line); }
+    .fac:last-child{ border-bottom:0; }
+    .fac .dot{ flex:none; width:5px; height:5px; border-radius:50%; background:var(--blue); transform:translateY(-2px); }
+    .fac .fcn{ font-size:.82rem; font-weight:600; color:var(--text); }
+    .fac .fen{ font-size:.66rem; color:var(--sub); margin-left:auto; text-align:right; }
+
+    .hint{ position:fixed; bottom:1.4rem; left:50%; transform:translateX(-50%); z-index:18; display:flex; gap:1.4rem; align-items:center; padding:.65rem 1.35rem; border-radius:980px;
+      background:linear-gradient(150deg, rgba(255,255,255,.55), rgba(255,255,255,.28));
+      backdrop-filter:url(#liquid-glass) blur(8px) saturate(180%); -webkit-backdrop-filter:blur(14px) saturate(180%);
+      border:1px solid rgba(255,255,255,.6);
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.9), 0 10px 30px rgba(31,58,108,.14);
+      font-size:.68rem; color:var(--sub); letter-spacing:.02em; opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .5s forwards; }
+    .hint b{ color:var(--blue); font-weight:600; }
+    .hint .sep{ width:1px; height:12px; background:var(--line); }
+
+    .reset{ position:fixed; bottom:1.5rem; right:1.5rem; z-index:18; display:flex; align-items:center; gap:.5rem; padding:.7rem 1.2rem; border:none; border-radius:980px; cursor:pointer; background:linear-gradient(150deg,#3168C8,var(--blue) 55%,var(--blue-deep)); color:#fff; font-size:.74rem; font-weight:600; letter-spacing:.03em; box-shadow:0 6px 20px rgba(36,84,164,.3); opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .6s forwards; transition:transform .3s, box-shadow .3s; }
+    .reset:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(36,84,164,.4); }
+
+    .compass{ position:fixed; top:5.4rem; right:1.6rem; z-index:18; width:54px; height:54px; border-radius:50%;
+      background:linear-gradient(150deg, rgba(255,255,255,.55), rgba(255,255,255,.28));
+      backdrop-filter:url(#liquid-glass) blur(6px) saturate(180%); -webkit-backdrop-filter:blur(14px) saturate(180%);
+      border:1px solid rgba(255,255,255,.6);
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.9), 0 8px 22px rgba(31,58,108,.16);
+      display:flex; align-items:center; justify-content:center; opacity:0; animation:slideL .8s cubic-bezier(.16,1,.3,1) .55s forwards; }
+    .compass .needle{ position:relative; width:100%; height:100%; }
+    .compass .n,.compass .s{ position:absolute; left:50%; top:50%; width:0; height:0; }
+    .compass .n{ border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:19px solid var(--blue); transform:translate(-50%,-100%); }
+    .compass .s{ border-left:5px solid transparent; border-right:5px solid transparent; border-top:19px solid #c9d3e2; transform:translate(-50%,0); }
+    .compass .lbl{ position:absolute; top:5px; left:50%; transform:translateX(-50%); font-size:.52rem; font-weight:700; color:var(--blue); }
+
+    .loader{ position:fixed; inset:0; z-index:50; background:#eef3fb; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem; transition:opacity .7s; }
+    .loader.hide{ opacity:0; pointer-events:none; }
+    .loader .ld-t{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:2.6rem; color:var(--blue); }
+    .ld-bar{ width:160px; height:3px; border-radius:3px; background:rgba(36,84,164,.15); overflow:hidden; }
+    .ld-bar i{ display:block; width:40%; height:100%; background:var(--blue); border-radius:3px; animation:ldmove 1s ease-in-out infinite; }
+    @keyframes ldmove{ 0%{transform:translateX(-100%);} 100%{transform:translateX(350%);} }
+
+    @keyframes slideL{ from{opacity:0; transform:translateY(-50%) translateX(-18px);} to{opacity:1; transform:translateY(-50%) translateX(0);} }
+    @keyframes slideU{ from{opacity:0; transform:translateX(-50%) translateY(16px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
+
+    @media (max-width:820px){
+      .guide{ display:none; }
+      .card{ width:auto; left:1rem; right:1rem; top:auto; bottom:5.2rem; transform:translateY(120%); max-height:50vh; }
+      .card.show{ transform:translateY(0); }
+      .hint{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid-glass refraction filter (displaces the backdrop behind glass panels) -->
+  <svg class="glass-defs" aria-hidden="true" width="0" height="0">
+    <defs>
+      <filter id="liquid-glass" x="-35%" y="-35%" width="170%" height="170%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="12" result="noise"/>
+        <feGaussianBlur in="noise" stdDeviation="1.4" result="softNoise"/>
+        <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="28" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div id="app"></div>
+
+  <div class="loader" id="loader">
+    <div class="ld-t">Ulink IB</div>
+    <div class="ld-bar"><i></i></div>
+    <div style="font-size:.66rem;letter-spacing:.14em;color:var(--sub);text-transform:uppercase">Building campus…</div>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="u">ULINK</span>
+      <span class="cn">领科教育 · 校园 3D 导览</span>
+    </div>
+    <span class="toptag">Interactive Campus Map</span>
+  </div>
+
+  <div class="modebar" id="modebar">
+    <span class="mode-ind" id="modeInd"></span>
+    <button class="mode active" data-mode="campus">校园全景</button>
+    <button class="mode" data-mode="floor">IB 学部</button>
+  </div>
+
+  <div class="compass"><div class="needle" id="needle">
+    <span class="lbl">N</span><span class="n"></span><span class="s"></span>
+  </div></div>
+
+  <aside class="guide">
+    <div class="guide-h">
+      <div class="t">Campus Guide</div>
+      <div class="s">点击建筑 · 探索校园</div>
+    </div>
+    <div class="guide-list" id="guideList"></div>
+  </aside>
+
+  <div class="card" id="card">
+    <button class="card-close" id="cardClose">&times;</button>
+    <div class="card-num" id="cardNum">1</div>
+    <div class="card-en" id="cardEn"></div>
+    <div class="card-cn" id="cardCn"></div>
+    <div class="card-div"></div>
+    <div class="card-lbl">Facilities · 设施</div>
+    <div id="cardFac"></div>
+  </div>
+
+  <div class="hint">
+    <span><b>拖拽</b> 旋转</span><span class="sep"></span>
+    <span><b>滚轮</b> 缩放</span><span class="sep"></span>
+    <span><b>点击</b> 查看建筑</span>
+  </div>
+
+  <button class="reset" id="resetBtn"><span>重置视角</span></button>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    /* ───────── DATA — real satellite layout (north up, west=left, entrance=south) ───────── */
+    const BLUE = 0x1F4E8C;                  // normal pins, logo, top toggle, guide card
+    const CORAL = 0xE0734A;                 // selected pin / highlighted building
+    const MAIN_IDS = new Set([1,12,16]);    // warm-stone main mass
+    const STONE = { mainFront:0xDCD3C4, mainTop:0xEFE9DD, secFront:0xD2CCBE, secTop:0xE4E0D6 };
+    const BUILDINGS = [
+      // ── North ──
+      {id:1, cn:'宿舍楼', en:'Dormitory', pos:[-6,-37], size:[28,7], h:11, wall:0xb6745a, dorm:true,
+        fac:[['1号宿舍','Dorm 1'],['2号宿舍','Dorm 2'],['3号宿舍','Dorm 3']]},
+      {id:2, cn:'网球场', en:'Tennis Courts', pos:[34,-36], size:[12,9], h:0.5, flat:true, court:0x3d7d5a, pinY:6,
+        fac:[['室外网球场','Outdoor Tennis Courts']]},
+      {id:3, cn:'田径运动场', en:'Athletics Field', pos:[0,-22], size:[26,13], h:0.5, flat:true, court:0xCBD6B0, pinY:7,
+        fac:[['标准跑道','Running Track'],['足球场','Soccer Pitch']]},
+      // ── Mid band ──
+      {id:4, cn:'智慧餐厅', en:'Smart Canteen', pos:[-32,-12], size:[7,6], h:7, wall:0xcf9b6f,
+        fac:[['自助取餐','Smart Self-service Dining']]},
+      {id:5, cn:'中餐厅', en:'Chinese Canteen', pos:[-33,-4], size:[8,10], h:9, wall:0xcf9b6f, roof:0x6f86b8,
+        fac:[['中餐档口','Chinese Dining Hall']]},
+      {id:6, cn:'便利店', en:'Convenience Store', pos:[-6,-13], size:[6,4], h:5, wall:0xcf9b6f,
+        fac:[['便利店','Convenience Store'],['超市','Grocery']]},
+      {id:7, cn:'风雨篮球场', en:'Covered Basketball Court', pos:[1.75,-7], size:[32.5,9], h:6, open:true, halfRoof:true,
+        fac:[['室内篮球场（有顶）','Covered Basketball Court'],['室外篮球场（无顶）','Open Basketball Court']]},
+      {id:8, cn:'行政服务中心', en:'Administration Center', pos:[9,-14], size:[9,5], h:8, wall:0xcf9b6f,
+        fac:[['医务室','Medic Room'],['体育器材室','PE Storage'],['职能部门办公室','Admin Offices']]},
+      {id:9, cn:'体育馆', en:'Gymnasium', pos:[34,-7], size:[12,9], h:12, wall:0xc47e57,
+        fac:[['室内篮球馆','Basketball Hall'],['音乐教室','Music Room']]},
+      {id:10, cn:'健身房', en:'Fitness Center', pos:[43,-7], size:[5,7], h:8, wall:0xc47e57,
+        fac:[['健身房','Fitness Room']]},
+      // ── Center ──
+      {id:12, cn:'综合楼', en:'Multi-function Building', pos:[2,5], size:[32,11], h:15, wall:0xc98a63, landmark:true,
+        fac:[['图书馆','Library'],['化学实验室','Chemistry Lab'],['咖啡吧','Cafe'],['教师办公室',"Teachers' Office"]]},
+      {id:13, cn:'艺术楼', en:'Art Building', pos:[32,19], size:[9,9], h:11, wall:0xc47e57,
+        fac:[['阶梯教室','Auditorium'],['网络教室','Web Conf. Room'],['艺术教室','Art Classroom'],['黑箱剧场','Blackbox Theater']]},
+      // ── Lower-mid ──
+      {id:14, cn:'剑桥楼', en:'Cambridge Building', pos:[-31,21.5], size:[7,27], h:12, wall:0xb96f4e,
+        fac:[['A-LEVEL 教室','A-Level Classroom']]},
+      {id:15, cn:'初中部', en:'Middle School', pos:[34,5], size:[8,12], h:13, wall:0xb96f4e,
+        fac:[['六–九年级教室','Grade 6–9 Classrooms'],['初中校长室','Principal Office'],['年级组办公室','Grade Office']]},
+      // ── South ──
+      {id:16, cn:'IB 教室（创意港）', en:'IB Classroom · Innovation Bay', pos:[-42,28], size:[3,14], h:11, wall:0xc47e57,
+        fac:[['IB 教学区','IB Classroom'],['科创教室','STEM Zone']]},
+      {id:17, cn:'SABIS 楼', en:'SABIS Building', pos:[32,29], size:[7,11], h:11, wall:0xb96f4e,
+        fac:[['SABIS 教学区','SABIS Classroom']]},
+      {id:18, cn:'1# 实验室', en:'Science Center 1#', pos:[45.5,28], size:[4,8], h:11, wall:0xc47e57,
+        fac:[['计算机实验室','Computer Lab'],['生物实验室','Biology Lab'],['教师办公室',"Teachers' Office"]]},
+      {id:19, cn:'2# 实验室', en:'Science Center 2#', pos:[30.75,40], size:[33.5,6], h:9, wall:0xc47e57,
+        fac:[['物理实验室','Physics Lab'],['考试中心','Exam Center']]},
+      // ── Lockers (small) ──
+      {id:20, cn:'外卖柜', en:'Takeout Lockers', pos:[-36.5,-11.5], size:[1.5,3], h:2.5, wall:0xe08a3d, locker:true, pinY:5,
+        fac:[['外卖暂存柜','Takeout Pickup Lockers']]},
+      {id:21, cn:'快递柜', en:'Parcel Lockers', pos:[-14,39], size:[2,3], h:2.5, wall:0x3368C0, locker:true, pinY:5,
+        fac:[['快递收发柜','Parcel Pickup Lockers']]},
+    ];
+
+    /* ───────── SCENE ───────── */
+    const app = document.getElementById('app');
+    const scene = new THREE.Scene();
+    (function(){   // fresh sky-blue vertical gradient backdrop (matches the welcome cover)
+      const c=document.createElement('canvas'); c.width=2; c.height=256; const x=c.getContext('2d');
+      const g=x.createLinearGradient(0,0,0,256); g.addColorStop(0,'#BFD9EC'); g.addColorStop(1,'#EAF3F8');
+      x.fillStyle=g; x.fillRect(0,0,2,256);
+      const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; scene.background=t;
+    })();
+    scene.fog = new THREE.Fog(0xEAF3F8, 175, 345);
+
+    const camera = new THREE.PerspectiveCamera(46, innerWidth/innerHeight, 0.1, 1000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    app.appendChild(renderer.domElement);
+
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(innerWidth, innerHeight);
+    labelRenderer.domElement.className = 'labels';
+    app.appendChild(labelRenderer.domElement);
+
+    const sun = new THREE.DirectionalLight(0xFFF6E8, 1.15);   // warm key — upper-left 45°, tops catch most light
+    sun.position.set(-62, 88, 46); sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 10; sun.shadow.camera.far = 280;
+    sun.shadow.camera.left = -100; sun.shadow.camera.right = 100;
+    sun.shadow.camera.top = 100; sun.shadow.camera.bottom = -100;
+    sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6; scene.add(sun);
+    scene.add(new THREE.AmbientLight(0xDCE8F0, 0.5));   // soft sky fill — warm stone albedo carries the warmth
+
+    function radialTex(inner, outer, ir, or_){
+      const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
+      const g=x.createRadialGradient(128,128,ir,128,128,or_);
+      g.addColorStop(0,inner); g.addColorStop(1,outer); x.fillStyle=g; x.fillRect(0,0,256,256);
+      const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+    }
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(300,300),
+      new THREE.MeshStandardMaterial({ map:radialTex('#F3EFE6','#E4DECF',24,182), roughness:1, metalness:0 }));
+    ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+
+    /* soft contact-shadow blob — presses each building onto the ground */
+    const shadowTex = (function(){
+      const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+      const g=x.createRadialGradient(64,64,6,64,64,64);
+      g.addColorStop(0,'rgba(70,60,46,0.26)'); g.addColorStop(0.55,'rgba(70,60,46,0.12)'); g.addColorStop(1,'rgba(70,60,46,0)');
+      x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c);
+    })();
+    function contactShadow(cx,cz,w,d){
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),
+        new THREE.MeshBasicMaterial({ map:shadowTex, transparent:true, depthWrite:false }));
+      m.rotation.x=-Math.PI/2; m.position.set(cx,0.06,cz); m.renderOrder=1; scene.add(m);
+    }
+
+    function flatRect(w, d, color, x, z, y=0.02){
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w,d),
+        new THREE.MeshStandardMaterial({ color, roughness:.95, metalness:0 }));
+      m.rotation.x = -Math.PI/2; m.position.set(x,y,z); m.receiveShadow = true;
+      scene.add(m); return m;
+    }
+
+    /* Base platform — warm off-white (blends with the radial ground) */
+    flatRect(116, 96, 0xEFEAE0, 0, -2, 0.01);
+    /* Track surface — muted clay */
+    flatRect(36, 18, 0xC0A187, 0, -22, 0.02);
+    /* Central lawn (fresh sage) + parking strips (warm grey) */
+    flatRect(30, 22, 0xCBD6B0, 0, 18, 0.03);
+    flatRect(4, 20, 0xD0C9BC, -12, 18, 0.04);
+    flatRect(4, 20, 0xD0C9BC,  12, 18, 0.04);
+    /* Entrance plaza + main path */
+    flatRect(24, 12, 0xDED7C9, 0, 41, 0.03);
+    flatRect(9, 20, 0xE3DCCE, 0, 31, 0.04);
+    /* Perimeter ring path */
+    flatRect(104, 4, 0xE3DCCE, 0, -40, 0.025);
+
+    /* ───────── BUILDER ───────── */
+    const groups = {};
+    const pickMeshes = [];
+
+    function buildFacility(b){
+      const g = new THREE.Group();
+      const [w,d] = b.size, h = b.h;
+      const isMain = MAIN_IDS.has(b.id);
+      const wallMat = new THREE.MeshStandardMaterial({ color: isMain?STONE.mainFront:STONE.secFront, roughness:.92, metalness:0 });
+      wallMat.emissive = new THREE.Color(CORAL); wallMat.emissiveIntensity = 0;
+      const roofMat = new THREE.MeshStandardMaterial({ color: isMain?STONE.mainTop:STONE.secTop, roughness:.9, metalness:0 });
+      roofMat.emissive = new THREE.Color(CORAL); roofMat.emissiveIntensity = 0;
+      let mats = [wallMat, roofMat];
+      const lowProfile = !!(b.flat || b.locker);
+
+      if(b.dorm){
+        /* a row of LOW blocks (shorter than academic buildings) */
+        const blocks = [[-11,7,9],[-3.5,7,11],[4,6.5,9.5],[11,7,10.5]];
+        blocks.forEach(([ox,bw,bh])=>{
+          const m = new THREE.Mesh(new THREE.BoxGeometry(bw,bh,7), wallMat);
+          m.position.set(ox,bh/2,0); m.castShadow=m.receiveShadow=true; m.userData.pick=b.id; g.add(m);
+          const r = new THREE.Mesh(new THREE.BoxGeometry(bw+.5,.6,7.5), roofMat);
+          r.position.set(ox,bh+.3,0); r.castShadow=true; g.add(r);
+        });
+      } else if(b.flat){
+        const padMat = new THREE.MeshStandardMaterial({ color:b.court, roughness:.92 });
+        padMat.emissive = new THREE.Color(CORAL); padMat.emissiveIntensity = 0;
+        mats = [padMat];
+        const pad = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), padMat);
+        pad.position.y = 0.25; pad.receiveShadow = true; pad.userData.pick=b.id; g.add(pad);
+        /* white outline lines */
+        const lineMat = new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:.8 });
+        const ow=w*0.9/2, od=d*0.9/2;
+        const pts = [[-ow,-od],[ow,-od],[ow,od],[-ow,od],[-ow,-od]].map(p=>new THREE.Vector3(p[0],0.52,p[1]));
+        g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+        g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+          [new THREE.Vector3(-ow,0.52,0), new THREE.Vector3(ow,0.52,0)]), lineMat));
+      } else if(b.open){
+        const padMat = new THREE.MeshStandardMaterial({ color:0x93a08c, roughness:.92 });
+        padMat.emissive = new THREE.Color(CORAL); padMat.emissiveIntensity = 0;
+        mats = [padMat];
+        const pad = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), padMat);
+        pad.position.y = 0.25; pad.receiveShadow=true; pad.userData.pick=b.id; g.add(pad);
+
+        /* roofed region: north half if halfRoof, else the whole court */
+        const rd = b.halfRoof ? d/2 : d;      // roofed depth
+        const rz = b.halfRoof ? -d/4 : 0;     // roofed centre (north = -Z)
+
+        /* divider line between covered (north) and open (south) halves */
+        if(b.halfRoof){
+          const lineMat = new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:.7 });
+          g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+            [new THREE.Vector3(-w/2,0.52,0), new THREE.Vector3(w/2,0.52,0)]), lineMat));
+        }
+
+        /* orange key markings inside the covered court */
+        const keyMat = new THREE.MeshStandardMaterial({ color:0xC79A6B, roughness:.9 });
+        [-1,1].forEach(s=>{
+          const key = new THREE.Mesh(new THREE.BoxGeometry(w*0.2,0.52,rd*0.55), keyMat);
+          key.position.set(s*(w/2-w*0.1),0.27,rz); g.add(key);
+        });
+
+        /* pillars around the roofed region */
+        const pillarMat = new THREE.MeshStandardMaterial({ color:0xdfe6ef, roughness:.7 });
+        const cx=w/2-1, z0=rz-rd/2+1, z1=rz+rd/2-1;
+        [[-cx,z0],[0,z0],[cx,z0],[-cx,z1],[0,z1],[cx,z1]].forEach(([px,pz])=>{
+          const p = new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,h,8), pillarMat);
+          p.position.set(px,h/2,pz); p.castShadow=true; g.add(p);
+        });
+
+        /* canopy over the roofed region only */
+        const canopy = new THREE.Mesh(new THREE.BoxGeometry(w+1.4,.5,rd+1.4),
+          new THREE.MeshStandardMaterial({ color:0xe8edf4, roughness:.6 }));
+        canopy.position.set(0,h,rz); canopy.castShadow=true; g.add(canopy);
+        mats.push(canopy.material);
+      } else if(b.locker){
+        const box = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat);
+        box.position.y = h/2; box.castShadow=box.receiveShadow=true; box.userData.pick=b.id; g.add(box);
+        const top = new THREE.Mesh(new THREE.BoxGeometry(w+.2,.25,d+.2), roofMat);
+        top.position.y = h+.12; top.castShadow=true; g.add(top);
+      } else {
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat);
+        body.position.y = h/2; body.castShadow=body.receiveShadow=true; body.userData.pick=b.id; g.add(body);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(w+.7,.8,d+.7), roofMat);
+        roof.position.y = h+.4; roof.castShadow=true; g.add(roof);
+        if(b.landmark){
+          const tw=w*0.3, th=h*0.5;
+          const tower = new THREE.Mesh(new THREE.BoxGeometry(tw,th,tw), wallMat);
+          tower.position.y = h+th/2; tower.castShadow=true; tower.userData.pick=b.id; g.add(tower);
+          const dome = new THREE.Mesh(new THREE.SphereGeometry(tw*0.5,28,18),
+            new THREE.MeshStandardMaterial({ color:0xD8CBB6, roughness:.9, metalness:0 }));
+          dome.position.y = h+th+tw*0.16; dome.castShadow=true; g.add(dome);
+          const spire = new THREE.Mesh(new THREE.ConeGeometry(0.26,2.2,12),
+            new THREE.MeshStandardMaterial({ color:0xC8BDAB, roughness:.7, metalness:0 }));
+          spire.position.y = h+th+tw*0.16+tw*0.5+1.0; g.add(spire);
+        }
+      }
+
+      g.position.set(b.pos[0], 0, b.pos[1]);
+      if(!b.flat) contactShadow(b.pos[0], b.pos[1], b.size[0]*1.4+3, b.size[1]*1.4+3);
+      g.userData = { id:b.id, h, size:b.size, mats, flat:lowProfile,
+        liftH: lowProfile?0.25:0.8, liftA: lowProfile?0.45:1.6 };
+
+      const div = document.createElement('div');
+      div.className = 'pin' + (lowProfile?' flat':''); div.textContent = b.id; div.dataset.id = b.id;
+      const label = new CSS2DObject(div);
+      label.position.set(0,
+        b.pinY!=null ? b.pinY : (b.dorm?14:(b.open?h+5:h+4.5)),
+        b.open && b.halfRoof ? -b.size[1]/4 : 0);
+      g.add(label); g.userData.pinEl = div;
+
+      scene.add(g);
+      groups[b.id] = g;
+      const allMats=[];
+      g.traverse(o=>{
+        if(o.isMesh && o.userData.pick) pickMeshes.push(o);
+        if(o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMats.push(m));
+      });
+      g.userData.allMats = allMats; g.userData.opacity = 1;
+    }
+    BUILDINGS.forEach(buildFacility);
+
+    /* Entrance arch */
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(7,0.6,12,40,Math.PI),
+      new THREE.MeshStandardMaterial({ color:0xC5C7C5, roughness:.85, metalness:0 }));
+    arch.position.set(0,0,42); arch.scale.set(1.5,1,1); arch.castShadow=true; scene.add(arch);
+
+    /* ───────── TREES ───────── */
+    const treeMeshes = [];
+    (function plantTrees(){
+      const foliageGeo = new THREE.ConeGeometry(1.7,4.2,7);
+      const trunkGeo = new THREE.CylinderGeometry(0.28,0.34,1.8,6);
+      const foliageMat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:1, metalness:0, flatShading:true });
+      const trunkMat = new THREE.MeshStandardMaterial({ color:0x6B5746, roughness:1, metalness:0 });
+      const FOLIAGE = [new THREE.Color(0x8AA06E), new THREE.Color(0x6E8B5E)];   // two matte greens
+      const pts = [];
+      const blocked = (x,z)=>{
+        if(Math.abs(x)<16 && z>6 && z<30) return true;          // central lawn
+        if(Math.abs(x)<20 && z>-31 && z<-13) return true;       // sports
+        for(const b of BUILDINGS){
+          const ext = b.dorm?16:(b.size[0]/2+4);
+          if(Math.abs(x-b.pos[0])<ext && Math.abs(z-b.pos[1])<b.size[1]/2+4) return true;
+        }
+        return false;
+      };
+      let tries=0;
+      while(pts.length<82 && tries<1400){
+        tries++;
+        const x=(Math.random()*2-1)*54, z=(Math.random()*2-1)*46;
+        if(Math.abs(x)>52 || Math.abs(z)>45) continue;
+        if(blocked(x,z)) continue;
+        pts.push([x,z]);
+      }
+      const foliage = new THREE.InstancedMesh(foliageGeo, foliageMat, pts.length);
+      const trunk = new THREE.InstancedMesh(trunkGeo, trunkMat, pts.length);
+      foliage.castShadow = trunk.castShadow = true;
+      const m = new THREE.Matrix4(); const q = new THREE.Quaternion();
+      pts.forEach((p,i)=>{
+        const s = 0.7 + Math.random()*0.7;
+        q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.random()*Math.PI);
+        m.compose(new THREE.Vector3(p[0], 1.8 + (4.2*s)/2, p[1]), q, new THREE.Vector3(s,s,s)); foliage.setMatrixAt(i,m);
+        m.compose(new THREE.Vector3(p[0], 0.9, p[1]), q, new THREE.Vector3(s,s,s)); trunk.setMatrixAt(i,m);
+        foliage.setColorAt(i, FOLIAGE[Math.random()<0.5?0:1]);
+      });
+      foliage.instanceColor.needsUpdate = true;
+      scene.add(foliage, trunk);
+      treeMeshes.push(foliage, trunk);
+    })();
+
+    /* ───────── CONTROLS ───────── */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.07;
+    controls.minDistance = 28; controls.maxDistance = 190;
+    controls.maxPolarAngle = 1.45; controls.minPolarAngle = 0.15;
+
+    const OVERVIEW_POS = new THREE.Vector3(30, 64, 96);
+    const OVERVIEW_TAR = new THREE.Vector3(0, 4, -2);
+    controls.target.copy(OVERVIEW_TAR);
+    camera.position.set(50, 140, 168);
+
+    /* ───────── CAMERA TWEEN ───────── */
+    let tween = null;
+    const easeIO = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+    function flyTo(toPos, toTar, dur=1100){
+      const p0 = camera.position.clone(), t0 = controls.target.clone();
+      const start = performance.now();
+      controls.enabled = false;
+      tween = (now)=>{
+        const k = Math.min(1,(now-start)/dur), e = easeIO(k);
+        camera.position.lerpVectors(p0,toPos,e);
+        controls.target.lerpVectors(t0,toTar,e);
+        camera.lookAt(controls.target);
+        if(k>=1){ tween=null; controls.enabled=true; }
+      };
+    }
+
+    /* ───────── SELECTION ───────── */
+    let selectedId=null, hoveredId=null, pinHoverId=null;
+    let hiddenIds = new Set(), currentMode = 'campus';
+    function selectBuilding(id){
+      selectedId = id;
+      const g=groups[id], s=g.userData.size, h=g.userData.h, c=g.position;
+      const reach = Math.max(s[0], s[1], h)*1.5 + 24;
+      const pos = new THREE.Vector3(c.x + reach*0.55, Math.max(h,6)*0.85 + reach*0.5, c.z + reach*0.9);
+      const tar = new THREE.Vector3(c.x, Math.max(h,4)*0.45, c.z);
+      flyTo(pos,tar,1100); showCard(id); setActive(id);
+    }
+    function deselect(){
+      selectedId=null; document.getElementById('card').classList.remove('show'); setActive(null);
+      if(currentMode==='campus') flyTo(OVERVIEW_POS,OVERVIEW_TAR,1100);
+    }
+
+    /* ───────── UI ───────── */
+    const card = document.getElementById('card');
+    function showCard(id){
+      const b = BUILDINGS.find(x=>x.id===id);
+      document.getElementById('cardNum').textContent = id;
+      document.getElementById('cardEn').textContent = b.en;
+      document.getElementById('cardCn').textContent = b.cn;
+      document.getElementById('cardFac').innerHTML = b.fac.map(f=>
+        `<div class="fac"><span class="dot"></span><span class="fcn">${f[0]}</span><span class="fen">${f[1]}</span></div>`).join('');
+      card.classList.add('show');
+    }
+    /* ── Floor-1 interiors for buildings 16 & 14 (from design plan) ── */
+    const ROOM_COLORS = {
+      classroom:0x7f9fd6, office:0xd9b06a, toilet:0x5bbcd6, meeting:0x83c084,
+      rest:0xe0a062, storage:0xaab2bf, computer:0xd87f6a, corridor:0xe3ebf4, room:0xc2ccd9, exit:0x2454A4
+    };
+    const ROOMS16 = [
+      {code:'C01', type:'office'},
+      {code:'C02', name:'储藏室', type:'storage'},
+      {code:'C03', name:'办公室', type:'office'},
+      {code:'C04', type:'room'}, {code:'C05', type:'room'}, {code:'C06', type:'room'},
+      {code:'C07', type:'room'}, {code:'C08', type:'room'}, {code:'C09', type:'room'},
+      {code:'C10', name:'办公室', type:'office'},
+    ];
+    const ROOMS14W = [
+      {code:'A101', type:'classroom'}, {code:'男厕', type:'toilet', span:.55},
+      {code:'A102', type:'classroom'}, {code:'A103', type:'classroom'},
+      {code:'A104', type:'classroom'}, {code:'A105', type:'classroom'},
+      {code:'女厕', type:'toilet', span:.55}, {code:'A106', type:'classroom'},
+    ];
+    const ROOMS14E = [
+      {code:'计算机教室', type:'computer', span:1.2}, {code:'会议室', type:'meeting'},
+      {code:'会议室', type:'meeting'}, {code:'休息区', type:'rest'},
+    ];
+
+    const floorLabels = [];   // CSS2D labels for the floor plans — only shown in IB-interior mode
+    const floorCut = (function buildInteriors(){
+      const root = new THREE.Group();
+      const FH=3.2, WH=2.6, WT=0.25;
+      const baseMat = new THREE.MeshStandardMaterial({ color:0xeef2f8, roughness:.95 });
+      const wallMat = new THREE.MeshStandardMaterial({ color:0x97a2b2, roughness:.8, side:THREE.DoubleSide });
+      const edgeMat = new THREE.LineBasicMaterial({ color:0x1F4E8C, transparent:true, opacity:.7 });
+      const tileMats = {};
+      const tileMat = t => tileMats[t] || (tileMats[t]=new THREE.MeshStandardMaterial({ color:ROOM_COLORS[t]??ROOM_COLORS.room, roughness:.85 }));
+      /* wall = thin raised box (the "lines" from the plan) */
+      function wall(g,w,d,x,z,h){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,h/2+0.3,z); m.castShadow=true; m.receiveShadow=true; g.add(m); }
+      const hWall=(g,x0,x1,z)=> wall(g, x1-x0, WT, (x0+x1)/2, z, WH);
+      const vWall=(g,z0,z1,x)=> wall(g, WT, z1-z0, x, (z0+z1)/2, WH);
+      function perimeter(g,w,d){
+        const hw=w/2, hd=d/2;
+        const base=new THREE.Mesh(new THREE.BoxGeometry(w,0.3,d), baseMat); base.position.y=0.15; base.receiveShadow=true; g.add(base);
+        wall(g, w+WT, WT, 0,-hd, FH); wall(g, w+WT, WT, 0, hd, FH);
+        wall(g, WT, d, -hw,0, FH);    wall(g, WT, d, hw,0, FH);
+        const ey=FH+0.3;
+        g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+          [[-hw,ey,-hd],[hw,ey,-hd],[hw,ey,hd],[-hw,ey,hd],[-hw,ey,-hd]].map(p=>new THREE.Vector3(...p))), edgeMat));
+      }
+      function tileCell(g,x0,x1,z0,z1,r){
+        const tile=new THREE.Mesh(new THREE.BoxGeometry((x1-x0)-0.3,0.5,(z1-z0)-0.3), tileMat(r.type));
+        tile.position.set((x0+x1)/2,0.3,(z0+z1)/2); tile.receiveShadow=true; g.add(tile);
+        const div=document.createElement('div'); div.className='room-lbl room-'+(r.type||'room');
+        div.innerHTML=`<b>${r.code}</b>`+(r.name?`<small>${r.name}</small>`:'');
+        const lb=new CSS2DObject(div); lb.position.set((x0+x1)/2,2.3,(z0+z1)/2); lb.visible=false; g.add(lb); floorLabels.push(lb);
+      }
+      function title(g,text,z){ const div=document.createElement('div'); div.className='floor-title'; div.textContent=text;
+        const lb=new CSS2DObject(div); lb.position.set(0,FH+3,z); lb.visible=false; g.add(lb); floorLabels.push(lb); }
+
+      /* Building 16 — 10 rooms filling one column, walls between */
+      const g16=new THREE.Group(); const W16=8, D16=30, n=ROOMS16.length;
+      perimeter(g16,W16,D16);
+      for(let i=0;i<n;i++){
+        const z0=-D16/2 + i*D16/n, z1=z0+D16/n;
+        if(i===0){
+          /* C01: two 1/4 rooms on the west side — Miranda (north), Hudson (south) */
+          const xMid=0, zMid=(z0+z1)/2;
+          tileCell(g16, xMid, W16/2, z0, z1, ROOMS16[0]);                       // east half stays C01
+          tileCell(g16, -W16/2, xMid, z0, zMid, {code:'Miranda', type:'office'});
+          tileCell(g16, -W16/2, xMid, zMid, z1, {code:'Hudson',  type:'office'});
+          vWall(g16, z0, z1, xMid);            // wall between west sub-rooms and C01
+          hWall(g16, -W16/2, xMid, zMid);      // wall between Miranda and Hudson
+        } else {
+          tileCell(g16,-W16/2,W16/2,z0,z1,ROOMS16[i]);
+          hWall(g16,-W16/2,W16/2,z0);
+        }
+      }
+      title(g16,'IB 楼 · 1F', -D16/2-2);
+      g16.position.set(-47,0,22); root.add(g16);
+
+      /* Building 14 — contiguous west block + discrete east rooms; empty parts stay solid */
+      const g14=new THREE.Group(); const W14=14, D14=30;
+      perimeter(g14,W14,D14);
+      const wX0=-W14/2, wX1=-1;                      // west room block (full depth)
+      const totalW=ROOMS14W.reduce((s,r)=>s+(r.span||1),0); let z=-D14/2;
+      for(let i=0;i<ROOMS14W.length;i++){
+        const r=ROOMS14W[i], z0=z, z1=z+D14*(r.span||1)/totalW;
+        tileCell(g14,wX0,wX1,z0,z1,r);
+        if(i>0) hWall(g14,wX0,wX1,z0);
+        z=z1;
+      }
+      vWall(g14,-D14/2,D14/2,wX1);                    // wall between west block and corridor
+      const eX0=1.5, eX1=W14/2;                       // discrete east rooms (solid base between)
+      const eastRects=[[-14,-8],[-5.25,-0.75],[1.75,6.25],[7.75,12.25]];
+      ROOMS14E.forEach((r,i)=>{
+        const [z0,z1]=eastRects[i];
+        tileCell(g14,eX0,eX1,z0,z1,r);
+        hWall(g14,eX0,eX1,z0); hWall(g14,eX0,eX1,z1); vWall(g14,z0,z1,eX0);
+      });
+      title(g14,'剑桥楼 · 1F', -D14/2-2);
+      g14.position.set(-31,0,22); root.add(g14);
+
+      root.visible=false; scene.add(root);
+      return root;
+    })();
+
+    /* ── Top slide-bar modes ── */
+    const modebar = document.getElementById('modebar');
+    const modeInd = document.getElementById('modeInd');
+    function moveInd(btn){ if(btn){ modeInd.style.left = btn.offsetLeft+'px'; modeInd.style.width = btn.offsetWidth+'px'; } }
+    function setTreesVisible(v){ treeMeshes.forEach(m=> m.visible = v); }
+    function setMode(mode){
+      currentMode = mode;
+      card.classList.remove('show'); selectedId=null; setActive(null);
+      floorCut.visible = (mode==='floor');
+      floorLabels.forEach(l=> l.visible = (mode==='floor'));
+      if(mode==='campus'){
+        hiddenIds = new Set(); setTreesVisible(true);
+        flyTo(OVERVIEW_POS, OVERVIEW_TAR, 1300);
+      } else if(mode==='floor'){
+        /* IB interior = ground-floor plans of 16 & 14 */
+        hiddenIds = new Set(BUILDINGS.map(b=>b.id));
+        setTreesVisible(false);
+        flyTo(new THREE.Vector3(-37,46,60), new THREE.Vector3(-37,1,22), 1600);
+      }
+    }
+    function activateMode(mode){
+      const btn = modebar.querySelector(`.mode[data-mode="${mode}"]`);
+      modebar.querySelectorAll('.mode').forEach(b=> b.classList.toggle('active', b===btn));
+      moveInd(btn); setMode(mode);
+    }
+    modebar.querySelectorAll('.mode').forEach(btn=> btn.onclick = ()=> activateMode(btn.dataset.mode));
+    requestAnimationFrame(()=> moveInd(modebar.querySelector('.mode.active')));
+    addEventListener('resize', ()=> moveInd(modebar.querySelector('.mode.active')));
+
+    document.getElementById('cardClose').onclick = ()=> activateMode('campus');
+    document.getElementById('resetBtn').onclick = ()=> activateMode('campus');
+
+    const guideList = document.getElementById('guideList');
+    guideList.innerHTML = BUILDINGS.map(b=>
+      `<div class="gitem" data-id="${b.id}">
+        <span class="n">${b.id}</span>
+        <span class="tx"><div class="cn">${b.cn}</div><div class="en">${b.en}</div></span>
+      </div>`).join('');
+    guideList.querySelectorAll('.gitem').forEach(el=> el.onclick = ()=> selectBuilding(+el.dataset.id));
+    function setActive(id){
+      guideList.querySelectorAll('.gitem').forEach(el=> el.classList.toggle('active', +el.dataset.id===id));
+      const act = guideList.querySelector('.gitem.active');
+      if(act) act.scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+
+    Object.values(groups).forEach(g=>{
+      const el=g.userData.pinEl, id=g.userData.id;
+      el.onclick = e=>{ e.stopPropagation(); selectBuilding(id); };
+      el.onmouseenter = ()=> pinHoverId=id;
+      el.onmouseleave = ()=>{ if(pinHoverId===id) pinHoverId=null; };
+    });
+
+    /* ───────── PICKING ───────── */
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    let pointerIn=false, down=null;
+    renderer.domElement.addEventListener('pointermove', e=>{
+      pointerIn=true; ndc.x=(e.clientX/innerWidth)*2-1; ndc.y=-(e.clientY/innerHeight)*2+1;
+    });
+    renderer.domElement.addEventListener('pointerleave', ()=> pointerIn=false);
+    renderer.domElement.addEventListener('pointerdown', e=>{ down={x:e.clientX,y:e.clientY}; });
+    renderer.domElement.addEventListener('pointerup', e=>{
+      if(!down) return;
+      const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y); down=null;
+      if(moved>6) return;
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(pickMeshes, false);
+      if(hits.length) selectBuilding(hits[0].object.userData.pick);
+      else if(selectedId!==null) deselect();
+    });
+
+    addEventListener('resize', ()=>{
+      camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+    });
+
+    /* ───────── LOOP ───────── */
+    const needle = document.getElementById('needle');
+    function animate(){
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      if(tween) tween(now); else controls.update();
+
+      if(!tween && pointerIn){
+        raycaster.setFromCamera(ndc, camera);
+        const hits = raycaster.intersectObjects(pickMeshes, false);
+        const rayId = hits.length ? hits[0].object.userData.pick : null;
+        hoveredId = pinHoverId!==null ? pinHoverId : rayId;
+        renderer.domElement.style.cursor = hoveredId ? 'pointer' : 'grab';
+      } else hoveredId = pinHoverId;
+
+      for(const g of Object.values(groups)){
+        const id=g.userData.id, active=id===selectedId, hover=id===hoveredId;
+        const tLift = active ? g.userData.liftA : hover ? g.userData.liftH : 0;
+        const tEmis = active ? 0.32 : hover ? 0.18 : 0;
+        g.position.y += (tLift - g.position.y)*0.15;
+        g.userData.mats.forEach(m=> m.emissiveIntensity += (tEmis - (m.emissiveIntensity||0))*0.15);
+        /* fade out non-focused buildings in isolate modes */
+        const vis = hiddenIds.has(id) ? 0 : 1;
+        g.userData.opacity += (vis - g.userData.opacity)*0.12;
+        const op = g.userData.opacity;
+        g.visible = op > 0.02;
+        g.userData.allMats.forEach(m=>{ m.transparent = op < 0.985; m.opacity = op; });
+        g.userData.pinEl.style.opacity = op;
+        g.userData.pinEl.style.pointerEvents = op > 0.5 ? 'auto' : 'none';
+        g.userData.pinEl.classList.toggle('active', active);
+        g.userData.pinEl.classList.toggle('hover', hover && !active);
+      }
+
+      needle.style.transform = `rotate(${-controls.getAzimuthalAngle()}rad)`;
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+    }
+    animate();
+
+    requestAnimationFrame(()=>{
+      flyTo(OVERVIEW_POS, OVERVIEW_TAR, 2000);
+      setTimeout(()=> document.getElementById('loader').classList.add('hide'), 350);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>欢迎 · 领科 IB 校园导览</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: oklch(0.22 0.02 250);
+    --paper: oklch(0.98 0.008 230);
+    --accent: oklch(0.70 0.17 35);        /* sunny coral */
+    --accent-press: oklch(0.64 0.17 35);
+    --sky: oklch(0.72 0.12 230);          /* fresh blue, fallback bg */
+    --sky-2: oklch(0.84 0.08 200);
+    --font-en: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-cn: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--font-cn);
+    color: var(--paper);
+    background: var(--ink);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- background photo ---- */
+  .bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(135deg, var(--sky) 0%, var(--sky-2) 100%);
+    background-image: url("assets/campus.png");
+    background-size: cover;
+    background-position: center 28%;
+  }
+
+  /* legibility scrims — keep top airy, anchor text at the bottom-left */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(to top, oklch(0.16 0.03 250 / 0.88) 0%, oklch(0.16 0.03 250 / 0.60) 34%, oklch(0.16 0.03 250 / 0.22) 58%, transparent 86%),
+      linear-gradient(100deg, oklch(0.16 0.03 250 / 0.70) 0%, oklch(0.16 0.03 250 / 0.34) 38%, transparent 62%);
+  }
+
+  /* ---- content ---- */
+  .content {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(22px, 4.4vw, 60px);
+  }
+
+  /* top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    opacity: 0;
+    animation: rise 0.8s 0.05s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  .logo-slot {
+    width: clamp(42px, 6vw, 56px);
+    height: clamp(42px, 6vw, 56px);
+    flex: none;
+    background: oklch(1 0 0 / 0.14);
+    backdrop-filter: blur(6px);
+    border: 1px solid oklch(1 0 0 / 0.3);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .logo-slot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .wordmark {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.18;
+    text-shadow: 0 1px 12px oklch(0.2 0.03 250 / 0.4);
+  }
+  .wordmark b {
+    font-family: var(--font-cn);
+    font-weight: 700;
+    font-size: clamp(15px, 1.7vw, 19px);
+    letter-spacing: 0.01em;
+  }
+  .wordmark span {
+    font-family: var(--font-en);
+    font-weight: 600;
+    font-size: clamp(11px, 1.2vw, 13px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.82;
+  }
+
+  /* hero block, anchored lower-left */
+  .hero {
+    margin-top: auto;
+    max-width: min(760px, 92%);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 16px 8px 13px;
+    border-radius: 999px;
+    background: oklch(1 0 0 / 0.16);
+    backdrop-filter: blur(8px);
+    border: 1px solid oklch(1 0 0 / 0.26);
+    font-family: var(--font-en);
+    font-weight: 600;
+    font-size: clamp(11px, 1.25vw, 13.5px);
+    letter-spacing: 0.04em;
+    margin-bottom: clamp(18px, 2.6vw, 28px);
+    opacity: 0;
+    animation: rise 0.8s 0.18s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  .badge .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px oklch(0.70 0.17 35 / 0.32);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  h1 {
+    font-family: var(--font-cn);
+    font-weight: 900;
+    font-size: clamp(40px, 8vw, 92px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    text-shadow: 0 2px 30px oklch(0.2 0.03 250 / 0.45);
+    margin-bottom: clamp(8px, 1.4vw, 16px);
+    opacity: 0;
+    animation: rise 0.9s 0.28s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  h1 .en {
+    display: block;
+    font-family: var(--font-en);
+    font-weight: 800;
+    font-size: clamp(20px, 3.4vw, 38px);
+    letter-spacing: -0.01em;
+    color: oklch(0.96 0.02 60);
+    margin-top: clamp(6px, 1vw, 12px);
+  }
+
+  .sub {
+    font-family: var(--font-cn);
+    font-weight: 400;
+    font-size: clamp(15px, 1.9vw, 21px);
+    line-height: 1.5;
+    max-width: 540px;
+    opacity: 0;
+    text-shadow: 0 1px 16px oklch(0.2 0.03 250 / 0.5);
+    color: oklch(0.97 0.01 230 / 0.92);
+    margin-bottom: clamp(26px, 3.6vw, 42px);
+    animation: rise 0.9s 0.38s cubic-bezier(.2,.7,.2,1) forwards;
+    text-wrap: pretty;
+  }
+  .sub .en {
+    display: block;
+    font-family: var(--font-en);
+    font-size: clamp(13px, 1.45vw, 16px);
+    opacity: 0.78;
+    margin-top: 4px;
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: clamp(15px, 1.8vw, 19px) clamp(26px, 3vw, 34px);
+    border: none;
+    border-radius: 999px;
+    background: var(--accent);
+    color: oklch(0.99 0.01 60);
+    font-family: var(--font-en);
+    font-weight: 700;
+    font-size: clamp(16px, 1.9vw, 20px);
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 10px 30px oklch(0.70 0.17 35 / 0.42), 0 2px 0 oklch(0.58 0.16 35) inset;
+    transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, background .2s;
+    opacity: 0;
+    animation: rise 0.9s 0.5s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  .cta:hover {
+    background: var(--accent-press);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px oklch(0.70 0.17 35 / 0.5), 0 2px 0 oklch(0.58 0.16 35) inset;
+  }
+  .cta:active { transform: translateY(-1px); }
+  .cta .arrow {
+    display: inline-block;
+    transition: transform .28s cubic-bezier(.2,.7,.2,1);
+    font-size: 1.1em;
+  }
+  .cta:hover .arrow { transform: translateX(5px); }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px oklch(0.70 0.17 35 / 0.36); }
+    50%      { box-shadow: 0 0 0 7px oklch(0.70 0.17 35 / 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .topbar, .badge, h1, .sub, .cta { animation: none; opacity: 1; }
+    .badge .dot { animation: none; }
+  }
+
+  /* very small / portrait phones: pull the hero up a touch, tighten */
+  @media (max-width: 560px) {
+    .sub { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="bg"></div>
+    <div class="scrim"></div>
+
+    <div class="content">
+      <header class="topbar">
+        <div class="logo-slot">
+          <img src="./logo.png" alt="领科 IB 校徽" />
+        </div>
+        <div class="wordmark">
+          <b>领科 IB 学部</b>
+          <span>Ulink College · IB</span>
+        </div>
+      </header>
+
+      <div class="hero">
+        <div class="badge">
+          <span class="dot"></span>
+          新生校园导览 · Freshman Campus Guide
+        </div>
+
+        <h1>
+          欢迎来到领科 IB
+          <span class="en">Welcome to Ulink IB</span>
+        </h1>
+
+        <p class="sub">
+          花两分钟，认识你接下来要朝夕相处的地方 —— 教室、食堂、图书馆，一张地图全部带你逛遍。
+          <span class="en">Take two minutes to explore the campus that's about to become home.</span>
+        </p>
+
+        <a class="cta" href="./campus.html">
+          Let's go
+          <span class="arrow">→</span>
+        </a>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>
