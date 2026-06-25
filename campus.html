@@ -649,7 +649,8 @@
     /* ── Floor-1 interiors for buildings 16 & 14 (from design plan) ── */
     const ROOM_COLORS = {
       classroom:0x7f9fd6, office:0xd9b06a, toilet:0x5bbcd6, meeting:0x83c084,
-      rest:0xe0a062, storage:0xaab2bf, computer:0xd87f6a, corridor:0xe3ebf4, room:0xc2ccd9, exit:0x2454A4
+      rest:0xe0a062, storage:0xaab2bf, computer:0xd87f6a, corridor:0xe3ebf4, room:0xc2ccd9, exit:0x2454A4,
+      open:0xEAE3D3
     };
     const ROOMS16 = [
       {code:'C01', type:'office'},
@@ -723,26 +724,34 @@
       title(g16,'IB 楼 · 1F', -D16/2-2);
       g16.position.set(-47,0,22); root.add(g16);
 
-      /* Building 14 — contiguous west block + discrete east rooms; empty parts stay solid */
-      const g14=new THREE.Group(); const W14=14, D14=30;
+      /* Building 14 — west A-rooms + east wing (computer room on top, small rooms
+         left / open zones right), matching the floor plan */
+      const g14=new THREE.Group(); const W14=14, D14=30, HD=D14/2;
       perimeter(g14,W14,D14);
-      const wX0=-W14/2, wX1=-1;                      // west room block (full depth)
-      const totalW=ROOMS14W.reduce((s,r)=>s+(r.span||1),0); let z=-D14/2;
+      const wX0=-W14/2, wX1=-2.5;                     // west classroom block (full depth)
+      const totalW=ROOMS14W.reduce((s,r)=>s+(r.span||1),0); let z=-HD;
       for(let i=0;i<ROOMS14W.length;i++){
         const r=ROOMS14W[i], z0=z, z1=z+D14*(r.span||1)/totalW;
         tileCell(g14,wX0,wX1,z0,z1,r);
         if(i>0) hWall(g14,wX0,wX1,z0);
         z=z1;
       }
-      vWall(g14,-D14/2,D14/2,wX1);                    // wall between west block and corridor
-      const eX0=1.5, eX1=W14/2;                       // discrete east rooms (solid base between)
-      const eastRects=[[-14,-8],[-5.25,-0.75],[1.75,6.25],[7.75,12.25]];
-      ROOMS14E.forEach((r,i)=>{
-        const [z0,z1]=eastRects[i];
-        tileCell(g14,eX0,eX1,z0,z1,r);
-        hWall(g14,eX0,eX1,z0); hWall(g14,eX0,eX1,z1); vWall(g14,z0,z1,eX0);
-      });
-      title(g14,'剑桥楼 · 1F', -D14/2-2);
+      vWall(g14,-HD,HD,wX1);                          // wall: west block | east wing
+
+      /* east wing: 计算机教室 fills the top; below = small rooms (left) + open zones (right) */
+      const eX0=wX1, eX1=W14/2, mid=1, zc=-8, zr1=-0.4, zr2=7.2;
+      tileCell(g14, eX0, eX1, -HD, zc,  {code:'计算机教室', type:'computer'});
+      tileCell(g14, eX0, mid, zc,  zr1, {code:'会议室', type:'meeting'});
+      tileCell(g14, mid, eX1, zc,  zr1, {code:'办公室', type:'open'});
+      tileCell(g14, eX0, mid, zr1, zr2, {code:'会议室', type:'meeting'});
+      tileCell(g14, mid, eX1, zr1, zr2, {code:'student center', type:'open'});
+      tileCell(g14, eX0, mid, zr2, HD,  {code:'休息区', type:'rest'});
+      tileCell(g14, mid, eX1, zr2, HD,  {code:'lab', type:'open'});
+      hWall(g14, eX0, eX1, zc);                       // computer-room bottom
+      vWall(g14, zc, HD, mid);                        // small rooms | open zones
+      hWall(g14, eX0, eX1, zr1); hWall(g14, eX0, eX1, zr2);   // row dividers
+
+      title(g14,'剑桥楼 · 1F', -HD-2);
       g14.position.set(-31,0,22); root.add(g14);
 
       root.visible=false; scene.add(root);
