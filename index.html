@@ -6,17 +6,17 @@
 <title>欢迎 · 领科 IB 校园导览</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --ink: oklch(0.22 0.02 250);
-    --paper: oklch(0.98 0.008 230);
-    --accent: oklch(0.70 0.17 35);        /* sunny coral */
-    --accent-press: oklch(0.64 0.17 35);
-    --sky: oklch(0.72 0.12 230);          /* fresh blue, fallback bg */
-    --sky-2: oklch(0.84 0.08 200);
-    --font-en: "Plus Jakarta Sans", system-ui, sans-serif;
-    --font-cn: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+    --ink: #102f47;
+    --paper: #f8faf8;
+    --accent: #d83a34;
+    --accent-press: #b92c29;
+    --sky: #6c9cbb;
+    --sky-2: #b8d3d9;
+    --font-en: "Manrope", system-ui, sans-serif;
+    --font-cn: "Noto Serif SC", "Songti SC", serif;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -47,7 +47,8 @@
       linear-gradient(135deg, var(--sky) 0%, var(--sky-2) 100%);
     background-image: url("assets/campus.png");
     background-size: cover;
-    background-position: center 28%;
+    background-position: center 31%;
+    filter: saturate(.86) contrast(1.04);
   }
 
   /* legibility scrims — keep top airy, anchor text at the bottom-left */
@@ -57,8 +58,8 @@
     z-index: 1;
     pointer-events: none;
     background:
-      linear-gradient(to top, oklch(0.16 0.03 250 / 0.88) 0%, oklch(0.16 0.03 250 / 0.60) 34%, oklch(0.16 0.03 250 / 0.22) 58%, transparent 86%),
-      linear-gradient(100deg, oklch(0.16 0.03 250 / 0.70) 0%, oklch(0.16 0.03 250 / 0.34) 38%, transparent 62%);
+      linear-gradient(to top, rgba(10,35,52,.92) 0%, rgba(10,35,52,.62) 36%, rgba(10,35,52,.18) 62%, transparent 88%),
+      linear-gradient(100deg, rgba(10,35,52,.78) 0%, rgba(10,35,52,.38) 42%, transparent 70%);
   }
 
   /* ---- content ---- */
@@ -68,7 +69,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: clamp(22px, 4.4vw, 60px);
+    padding: clamp(22px, 4vw, 56px);
   }
 
   /* top bar */
@@ -80,13 +81,13 @@
     animation: rise 0.8s 0.05s cubic-bezier(.2,.7,.2,1) forwards;
   }
   .logo-slot {
-    width: clamp(42px, 6vw, 56px);
-    height: clamp(42px, 6vw, 56px);
+    width: clamp(40px, 5.5vw, 52px);
+    height: clamp(40px, 5.5vw, 52px);
     flex: none;
-    background: oklch(1 0 0 / 0.14);
-    backdrop-filter: blur(6px);
-    border: 1px solid oklch(1 0 0 / 0.3);
-    border-radius: 14px;
+    background: rgba(248,250,248,.96);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 6px;
+    box-shadow: 0 8px 26px rgba(10,35,52,.18);
     overflow: hidden;
   }
   .logo-slot img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -94,13 +95,13 @@
     display: flex;
     flex-direction: column;
     line-height: 1.18;
-    text-shadow: 0 1px 12px oklch(0.2 0.03 250 / 0.4);
+    text-shadow: 0 1px 14px rgba(10,35,52,.45);
   }
   .wordmark b {
-    font-family: var(--font-cn);
-    font-weight: 700;
+    font-family: var(--font-en);
+    font-weight: 800;
     font-size: clamp(15px, 1.7vw, 19px);
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
   }
   .wordmark span {
     font-family: var(--font-en);
@@ -114,22 +115,19 @@
   /* hero block, anchored lower-left */
   .hero {
     margin-top: auto;
-    max-width: min(760px, 92%);
+    max-width: min(820px, 94%);
   }
 
   .badge {
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    padding: 8px 16px 8px 13px;
-    border-radius: 999px;
-    background: oklch(1 0 0 / 0.16);
-    backdrop-filter: blur(8px);
-    border: 1px solid oklch(1 0 0 / 0.26);
+    padding: 4px 0 4px 13px;
+    border-left: 3px solid var(--accent);
     font-family: var(--font-en);
-    font-weight: 600;
+    font-weight: 700;
     font-size: clamp(11px, 1.25vw, 13.5px);
-    letter-spacing: 0.04em;
+    letter-spacing: .06em;
     margin-bottom: clamp(18px, 2.6vw, 28px);
     opacity: 0;
     animation: rise 0.8s 0.18s cubic-bezier(.2,.7,.2,1) forwards;
@@ -137,17 +135,17 @@
   .badge .dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 4px oklch(0.70 0.17 35 / 0.32);
+    box-shadow: 0 0 0 4px rgba(216,58,52,.28);
     animation: pulse 2.4s ease-in-out infinite;
   }
 
   h1 {
     font-family: var(--font-cn);
     font-weight: 900;
-    font-size: clamp(40px, 8vw, 92px);
-    line-height: 1.02;
-    letter-spacing: -0.01em;
-    text-shadow: 0 2px 30px oklch(0.2 0.03 250 / 0.45);
+    font-size: clamp(39px, 7vw, 80px);
+    line-height: 1.08;
+    letter-spacing: 0;
+    text-shadow: 0 3px 28px rgba(10,35,52,.42);
     margin-bottom: clamp(8px, 1.4vw, 16px);
     opacity: 0;
     animation: rise 0.9s 0.28s cubic-bezier(.2,.7,.2,1) forwards;
@@ -156,21 +154,21 @@
     display: block;
     font-family: var(--font-en);
     font-weight: 800;
-    font-size: clamp(20px, 3.4vw, 38px);
-    letter-spacing: -0.01em;
-    color: oklch(0.96 0.02 60);
+    font-size: clamp(17px, 2.6vw, 29px);
+    letter-spacing: .02em;
+    color: rgba(248,250,248,.94);
     margin-top: clamp(6px, 1vw, 12px);
   }
 
   .sub {
     font-family: var(--font-cn);
-    font-weight: 400;
+    font-weight: 500;
     font-size: clamp(15px, 1.9vw, 21px);
     line-height: 1.5;
     max-width: 540px;
     opacity: 0;
-    text-shadow: 0 1px 16px oklch(0.2 0.03 250 / 0.5);
-    color: oklch(0.97 0.01 230 / 0.92);
+    text-shadow: 0 1px 16px rgba(10,35,52,.5);
+    color: rgba(248,250,248,.9);
     margin-bottom: clamp(26px, 3.6vw, 42px);
     animation: rise 0.9s 0.38s cubic-bezier(.2,.7,.2,1) forwards;
     text-wrap: pretty;
@@ -187,18 +185,18 @@
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    padding: clamp(15px, 1.8vw, 19px) clamp(26px, 3vw, 34px);
+    padding: clamp(14px, 1.7vw, 17px) clamp(23px, 2.7vw, 31px);
     border: none;
-    border-radius: 999px;
+    border-radius: 6px;
     background: var(--accent);
-    color: oklch(0.99 0.01 60);
+    color: #fff;
     font-family: var(--font-en);
     font-weight: 700;
-    font-size: clamp(16px, 1.9vw, 20px);
-    letter-spacing: 0.01em;
+    font-size: clamp(14px, 1.7vw, 17px);
+    letter-spacing: .01em;
     text-decoration: none;
     cursor: pointer;
-    box-shadow: 0 10px 30px oklch(0.70 0.17 35 / 0.42), 0 2px 0 oklch(0.58 0.16 35) inset;
+    box-shadow: 0 12px 30px rgba(142,35,32,.34), inset 0 1px 0 rgba(255,255,255,.2);
     transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, background .2s;
     opacity: 0;
     animation: rise 0.9s 0.5s cubic-bezier(.2,.7,.2,1) forwards;
@@ -206,7 +204,7 @@
   .cta:hover {
     background: var(--accent-press);
     transform: translateY(-3px);
-    box-shadow: 0 16px 40px oklch(0.70 0.17 35 / 0.5), 0 2px 0 oklch(0.58 0.16 35) inset;
+    box-shadow: 0 18px 42px rgba(142,35,32,.42), inset 0 1px 0 rgba(255,255,255,.2);
   }
   .cta:active { transform: translateY(-1px); }
   .cta .arrow {
@@ -221,8 +219,8 @@
     to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 3px oklch(0.70 0.17 35 / 0.36); }
-    50%      { box-shadow: 0 0 0 7px oklch(0.70 0.17 35 / 0); }
+    0%, 100% { box-shadow: 0 0 0 3px rgba(216,58,52,.34); }
+    50%      { box-shadow: 0 0 0 7px rgba(216,58,52,0); }
   }
   @media (prefers-reduced-motion: reduce) {
     .topbar, .badge, h1, .sub, .cta { animation: none; opacity: 1; }
@@ -232,6 +230,8 @@
   /* very small / portrait phones: pull the hero up a touch, tighten */
   @media (max-width: 560px) {
     .sub { max-width: 100%; }
+    .hero { max-width: 100%; }
+    .wordmark span { letter-spacing: .1em; }
   }
 </style>
 </head>
@@ -258,17 +258,17 @@
         </div>
 
         <h1>
-          欢迎来到领科 IB
-          <span class="en">Welcome to Ulink IB</span>
+          领科 IB 校园导览
+          <span class="en">Ulink IB Campus Guide</span>
         </h1>
 
         <p class="sub">
-          花两分钟，认识你接下来要朝夕相处的地方 —— 教室、食堂、图书馆，一张地图全部带你逛遍。
+          欢迎来到领科。用一张 3D 地图，认识教室、食堂、图书馆和即将朝夕相处的校园。
           <span class="en">Take two minutes to explore the campus that's about to become home.</span>
         </p>
 
         <a class="cta" href="./campus.html">
-          Let's go
+          进入 3D 校园
           <span class="arrow">→</span>
         </a>
 

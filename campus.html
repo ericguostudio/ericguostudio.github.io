@@ -4,204 +4,208 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Campus 3D · Ulink IB</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="./logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --blue:#1F4E8C; --blue-mid:#3368C0; --blue-deep:#163a6b; --coral:#E0734A;
-      --text:#1d1d1f; --sub:#6e6e73; --line:rgba(36,84,164,.12);
+      --blue:#17446a; --blue-mid:#4b708c; --blue-deep:#102f47; --coral:#d83a34;
+      --paper:#f8faf8; --vellum:rgba(248,250,248,.9); --text:#1c2b33; --sub:#68767c;
+      --line:rgba(23,68,106,.14); --shadow:rgba(16,47,71,.17); --green:#5c7864;
     }
     *,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
     html,body{ width:100%; height:100%; overflow:hidden;
-      font-family:'Plus Jakarta Sans',sans-serif; color:var(--text); background:#eef3fb; }
+      font-family:'Manrope',sans-serif; color:var(--text); background:#dbe4e1; }
     #app{ position:fixed; inset:0; touch-action:none; }
     #app canvas{ display:block; touch-action:none; }
 
     .labels{ position:absolute; inset:0; pointer-events:none; }
     .pin{
       width:28px; height:28px; border-radius:50%;
-      background:var(--blue); color:#fff;
-      font:600 12.5px/28px 'Plus Jakarta Sans'; text-align:center;
-      box-shadow:0 5px 14px rgba(36,84,164,.42), 0 0 0 3px rgba(255,255,255,.92);
+      background:var(--paper); color:var(--blue-deep);
+      border:2px solid var(--blue);
+      font:800 11.5px/24px 'Manrope'; text-align:center;
+      box-shadow:0 6px 16px rgba(16,47,71,.2), 0 0 0 3px rgba(248,250,248,.82);
       pointer-events:auto; cursor:pointer;
       transform:translateY(0); transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .25s, box-shadow .25s;
       will-change:transform;
     }
-    .pin.flat{ width:24px; height:24px; line-height:24px; font-size:11px; background:var(--blue-mid); }
+    .pin.flat{ width:24px; height:24px; line-height:20px; font-size:10px; background:#eef3ef; border-color:var(--green); }
     .pin:hover,.pin.hover{ transform:scale(1.18) translateY(-2px); }
-    .pin.active{ background:var(--coral); transform:scale(1.34) translateY(-4px);
-      box-shadow:0 9px 22px rgba(224,115,74,.6), 0 0 0 4px #fff; }
+    .pin.active{ background:var(--coral); color:#fff; transform:scale(1.34) translateY(-4px);
+      border-color:var(--coral); box-shadow:0 10px 24px rgba(176,43,38,.35), 0 0 0 4px rgba(248,250,248,.94); }
     /* room labels for the floor-1 plans */
-    .room-lbl{ display:flex; flex-direction:column; align-items:center; line-height:1.05; padding:.26rem .5rem; border-radius:9px;
-      background:rgba(255,255,255,.66); backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,.72);
-      box-shadow:0 2px 7px rgba(31,58,108,.16); color:var(--blue-deep);
-      font:700 .62rem 'Plus Jakarta Sans'; letter-spacing:.01em; white-space:nowrap; pointer-events:none; }
+    .room-lbl{ display:flex; flex-direction:column; align-items:center; line-height:1.05; padding:.28rem .5rem; border-radius:5px;
+      background:rgba(248,250,248,.88); backdrop-filter:blur(4px); border:1px solid var(--line);
+      box-shadow:0 3px 9px rgba(16,47,71,.11); color:var(--blue-deep);
+      font:700 .62rem 'Manrope'; letter-spacing:0; white-space:nowrap; pointer-events:none; }
     .room-lbl small{ font-weight:500; font-size:.5rem; color:var(--sub); margin-top:1px; }
-    .room-lbl.room-exitlbl{ background:rgba(36,84,164,.9); color:#fff; border-color:rgba(255,255,255,.5); }
-    .floor-title{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:1.2rem; color:var(--blue-deep);
-      background:linear-gradient(150deg, rgba(255,255,255,.62), rgba(255,255,255,.3)); backdrop-filter:blur(6px);
-      border:1px solid rgba(255,255,255,.66); box-shadow:0 6px 18px rgba(31,58,108,.16);
-      padding:.28rem .85rem; border-radius:12px; white-space:nowrap; pointer-events:none; }
+    .room-lbl.room-exitlbl{ background:rgba(23,68,106,.92); color:#fff; border-color:rgba(255,255,255,.55); }
+    .floor-title{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:1.05rem; color:var(--blue-deep);
+      background:rgba(248,250,248,.92); backdrop-filter:blur(6px);
+      border:1px solid var(--line); box-shadow:0 7px 20px rgba(16,47,71,.13);
+      padding:.4rem .9rem; border-radius:5px; white-space:nowrap; pointer-events:none; }
 
     .topbar{ position:fixed; top:0; left:0; right:0; z-index:20;
-      display:flex; align-items:center; justify-content:space-between; padding:1.15rem 1.6rem;
-      background:linear-gradient(180deg, rgba(238,243,251,.92) 0%, rgba(238,243,251,0) 100%);
+      display:flex; align-items:flex-start; justify-content:space-between; padding:1.15rem 1.45rem;
+      background:linear-gradient(180deg, rgba(226,235,232,.92) 0%, rgba(226,235,232,0) 100%);
       pointer-events:none; }
-    .brand{ display:flex; flex-direction:column; gap:2px; pointer-events:auto; }
-    .brand .u{ font-weight:700; font-size:1.18rem; letter-spacing:.3em; color:var(--blue); line-height:1; }
-    .brand .cn{ font-size:.58rem; font-weight:500; letter-spacing:.16em; color:var(--blue); opacity:.5; }
-    .toptag{ font-size:.62rem; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); opacity:.65; font-weight:600; pointer-events:auto; }
+    .brand{ display:flex; align-items:center; gap:.65rem; pointer-events:auto; }
+    .brand-mark{ width:32px; height:32px; object-fit:contain; filter:drop-shadow(0 3px 7px rgba(16,47,71,.12)); }
+    .brand-copy{ display:flex; flex-direction:column; gap:3px; }
+    .brand .u{ font-weight:800; font-size:1rem; letter-spacing:.22em; color:var(--blue-deep); line-height:1; }
+    .brand .cn{ font-size:.55rem; font-weight:600; letter-spacing:.1em; color:var(--blue); opacity:.72; }
+    .toptag{ margin-top:.2rem; font-size:.58rem; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); opacity:.7; font-weight:700; pointer-events:auto; }
 
     /* ── Top slide-bar (mode switch) ── */
     .modebar{ position:fixed; top:1.05rem; left:50%; transform:translateX(-50%); z-index:21;
-      display:flex; gap:2px; padding:5px; border-radius:980px; isolation:isolate;
-      background:linear-gradient(150deg, rgba(255,255,255,.34), rgba(255,255,255,.12));
-      backdrop-filter:url(#liquid-glass) blur(8px) saturate(185%); -webkit-backdrop-filter:blur(14px) saturate(185%);
-      border:1px solid rgba(255,255,255,.55);
-      box-shadow:inset 0 1px 1px rgba(255,255,255,.9), 0 10px 30px rgba(31,58,108,.16);
+      display:flex; gap:2px; padding:4px; border-radius:7px; isolation:isolate;
+      background:rgba(248,250,248,.9);
+      backdrop-filter:blur(14px) saturate(110%); -webkit-backdrop-filter:blur(14px) saturate(110%);
+      border:1px solid var(--line);
+      box-shadow:0 12px 32px var(--shadow), inset 0 1px 0 rgba(255,255,255,.75);
       opacity:0; animation:slideDown .8s cubic-bezier(.16,1,.3,1) .2s forwards; }
     .modebar .mode{ position:relative; z-index:1; border:none; background:transparent; cursor:pointer;
-      padding:.52rem 1.05rem; border-radius:980px; font:600 .72rem 'Plus Jakarta Sans'; letter-spacing:.02em;
+      padding:.56rem 1.1rem; border-radius:4px; font:700 .7rem 'Manrope'; letter-spacing:0;
       color:var(--blue-deep); white-space:nowrap; transition:color .3s; }
     .modebar .mode.active{ color:#fff; }
-    .mode-ind{ position:absolute; top:5px; bottom:5px; left:5px; width:80px; z-index:0; border-radius:980px;
-      background:linear-gradient(150deg,#3168C8,var(--blue) 60%,var(--blue-deep));
-      box-shadow:0 4px 14px rgba(36,84,164,.4), inset 0 1px 0 rgba(255,255,255,.25);
+    .mode-ind{ position:absolute; top:4px; bottom:4px; left:4px; width:80px; z-index:0; border-radius:4px;
+      background:var(--coral);
+      box-shadow:0 5px 15px rgba(176,43,38,.25), inset 0 1px 0 rgba(255,255,255,.2);
       transition:left .45s cubic-bezier(.34,1.4,.5,1), width .45s cubic-bezier(.34,1.4,.5,1); }
     @keyframes slideDown{ from{opacity:0; transform:translateX(-50%) translateY(-14px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
 
-    /* ── Liquid-glass sidebar ── */
+    /* ── Map index sidebar ── */
     .glass-defs{ position:absolute; width:0; height:0; pointer-events:none; }
-    .guide{ position:fixed; top:50%; left:1.4rem; transform:translateY(-50%); z-index:18; width:242px; max-height:78vh;
-      border-radius:28px; isolation:isolate;
-      background:linear-gradient(150deg, rgba(255,255,255,.28), rgba(255,255,255,.07));
-      backdrop-filter:url(#liquid-glass) blur(2px) saturate(195%) brightness(1.08);
-      -webkit-backdrop-filter:blur(12px) saturate(195%) brightness(1.08);
-      border:1px solid rgba(255,255,255,.55);
-      box-shadow:
-        inset 0 1px 1px rgba(255,255,255,.95),
-        inset 0 -12px 30px rgba(255,255,255,.20),
-        inset 1px 0 1px rgba(255,255,255,.45),
-        inset -1px 0 1px rgba(255,255,255,.45),
-        0 16px 50px rgba(31,58,108,.22),
-        0 4px 14px rgba(31,58,108,.12);
+    .guide{ position:fixed; top:50%; left:1.25rem; transform:translateY(-50%); z-index:18; width:260px; max-height:79vh;
+      border-radius:6px; isolation:isolate;
+      background:var(--vellum);
+      backdrop-filter:blur(16px) saturate(108%);
+      -webkit-backdrop-filter:blur(16px) saturate(108%);
+      border:1px solid var(--line);
+      box-shadow:0 20px 50px rgba(16,47,71,.17), 0 1px 0 rgba(255,255,255,.75) inset;
       display:flex; flex-direction:column; overflow:hidden;
       opacity:0; animation:slideL .8s cubic-bezier(.16,1,.3,1) .3s forwards; }
-    .guide::before{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
-      background:
-        linear-gradient(150deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,0) 34%),
-        radial-gradient(130% 80% at 16% -8%, rgba(255,255,255,.55), rgba(255,255,255,0) 52%); }
-    .guide::after{ content:''; position:absolute; left:-28%; top:-22%; width:78%; height:60%; z-index:0; pointer-events:none;
-      background:radial-gradient(closest-side, rgba(255,255,255,.6), rgba(255,255,255,0) 72%);
-      filter:blur(7px); animation:sheen 11s ease-in-out infinite; }
+    .guide::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; z-index:2; pointer-events:none;
+      background:linear-gradient(90deg,var(--coral) 0 28%,var(--blue) 28% 100%); }
+    .guide::after{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
+      background:linear-gradient(145deg, rgba(255,255,255,.38), transparent 38%); }
     .guide-h, .guide-list{ position:relative; z-index:1; }
-    @keyframes sheen{
-      0%{ transform:translate(0,0) scale(1); opacity:.75; }
-      50%{ transform:translate(210px,440px) scale(1.3); opacity:.3; }
-      100%{ transform:translate(0,0) scale(1); opacity:.75; } }
-    .guide-h{ padding:1.05rem 1.2rem .78rem; border-bottom:1px solid rgba(255,255,255,.5); box-shadow:0 1px 0 rgba(31,58,108,.06); }
-    .guide-h .t{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:1.55rem; color:var(--blue-deep); line-height:1; text-shadow:0 1px 0 rgba(255,255,255,.55); }
-    .guide-h .s{ font-size:.6rem; letter-spacing:.1em; color:var(--sub); margin-top:3px; text-transform:uppercase; }
-    .guide-list{ overflow-y:auto; padding:.5rem; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.6) transparent; }
+    .guide-h{ padding:1.25rem 1.2rem .9rem; border-bottom:1px solid var(--line); box-shadow:none; }
+    .guide-h .t{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:1.25rem; color:var(--blue-deep); line-height:1.1; }
+    .guide-h .s{ font-size:.57rem; letter-spacing:.09em; color:var(--sub); margin-top:5px; text-transform:uppercase; }
+    .guide-list{ overflow-y:auto; padding:.55rem; scrollbar-width:thin; scrollbar-color:rgba(23,68,106,.24) transparent; }
     .guide-list::-webkit-scrollbar{ width:6px; }
-    .guide-list::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.55); border-radius:3px; }
-    .gitem{ display:flex; align-items:center; gap:.7rem; padding:.5rem .6rem; border-radius:14px; cursor:pointer;
+    .guide-list::-webkit-scrollbar-thumb{ background:rgba(23,68,106,.22); border-radius:3px; }
+    .guide-section{ padding:.15rem 0 .35rem; }
+    .guide-section + .guide-section{ border-top:1px solid var(--line); margin-top:.35rem; padding-top:.7rem; }
+    .guide-section-title{ padding:.35rem .65rem .5rem; font-size:.57rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); opacity:.78; }
+    .gitem{ display:flex; align-items:center; gap:.72rem; padding:.5rem .62rem; border-radius:4px; cursor:pointer;
       transition:background .25s, box-shadow .25s, transform .25s; pointer-events:auto; }
-    .gitem:hover{ background:rgba(255,255,255,.5); transform:translateX(2px);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.85), 0 3px 10px rgba(31,58,108,.12); }
-    .gitem.active{ background:rgba(255,255,255,.66);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.95), 0 4px 12px rgba(36,84,164,.2); }
-    .gitem .n{ flex:none; width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; font:600 11px/22px 'Plus Jakarta Sans'; text-align:center; box-shadow:0 2px 6px rgba(36,84,164,.35); }
-    .gitem.active .n{ background:var(--coral); }
+    .gitem:hover{ background:rgba(225,235,239,.66); transform:translateX(2px); }
+    .gitem.active{ background:rgba(220,232,238,.9);
+      box-shadow:inset 3px 0 0 var(--coral); }
+    .gitem .n{ flex:none; width:23px; height:23px; border-radius:50%; background:#edf2f2; color:var(--blue-deep); border:1px solid var(--line); font:800 10px/21px 'Manrope'; text-align:center; }
+    .gitem.active .n{ background:var(--coral); color:#fff; border-color:transparent; }
     .gitem .tx{ min-width:0; }
-    .gitem .cn{ font-size:.74rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .gitem .en{ font-size:.58rem; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gitem .cn{ font-size:.73rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gitem .en{ font-size:.56rem; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gitem.extra .n{ color:#fff; background:var(--blue); border-color:transparent; }
+    .gitem.extra.active{ background:rgba(220,232,238,.94); }
+    .extra-tag{ display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none; transform:translateY(-4px); }
+    .extra-tag .dot{ width:18px; height:18px; border-radius:50%; background:var(--coral); border:3px solid var(--paper);
+      box-shadow:0 8px 18px rgba(176,43,38,.3), 0 0 0 1px var(--line); }
+    .extra-tag .label{ padding:.28rem .56rem; border-radius:4px; background:rgba(248,250,248,.94); border:1px solid var(--line);
+      box-shadow:0 7px 18px rgba(16,47,71,.14); color:var(--blue-deep); font:700 .58rem 'Manrope'; white-space:nowrap; }
 
-    .card{ position:fixed; top:50%; right:1.4rem; transform:translate(120%,-50%); z-index:19; width:332px; max-height:80vh;
-      border-radius:28px; isolation:isolate;
-      background:linear-gradient(150deg, rgba(255,255,255,.40), rgba(255,255,255,.18));
-      backdrop-filter:url(#liquid-glass) blur(3px) saturate(185%) brightness(1.06);
-      -webkit-backdrop-filter:blur(15px) saturate(185%);
-      border:1px solid rgba(255,255,255,.6);
-      box-shadow:
-        inset 0 1px 1px rgba(255,255,255,.95),
-        inset 0 -12px 32px rgba(255,255,255,.18),
-        0 24px 70px rgba(31,58,108,.24),
-        0 5px 16px rgba(31,58,108,.12);
+    .card{ position:fixed; top:50%; right:1.25rem; transform:translate(120%,-50%); z-index:19; width:326px; max-height:80vh;
+      border-radius:6px; isolation:isolate;
+      background:rgba(248,250,248,.94);
+      backdrop-filter:blur(16px) saturate(108%);
+      -webkit-backdrop-filter:blur(16px) saturate(108%);
+      border:1px solid var(--line); border-top:3px solid var(--coral);
+      box-shadow:0 22px 58px rgba(16,47,71,.2), 0 1px 0 rgba(255,255,255,.75) inset;
       padding:1.6rem 1.6rem 1.5rem; overflow-y:auto;
       transition:transform .6s cubic-bezier(.16,1,.3,1), opacity .5s; opacity:0; }
     .card::before{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
-      background:linear-gradient(150deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,0) 32%); }
+      background:linear-gradient(150deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 34%); }
     .card > *{ position:relative; z-index:1; }
     .card.show{ transform:translate(0,-50%); opacity:1; }
-    .card-close{ position:absolute; top:1rem; right:1rem; z-index:2; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.7); background:rgba(255,255,255,.5); backdrop-filter:blur(6px); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:1rem; transition:background .2s,color .2s; }
-    .card-close:hover{ background:var(--blue); color:#fff; border-color:var(--blue); }
-    .card-num{ width:38px; height:38px; border-radius:50%; background:var(--coral); color:#fff; font:700 16px/38px 'Plus Jakarta Sans'; text-align:center; box-shadow:0 6px 16px rgba(224,115,74,.34); margin-bottom:1rem; }
-    .card-en{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:1.85rem; line-height:1.05; color:var(--blue); letter-spacing:-.01em; }
-    .card-cn{ font-size:.9rem; font-weight:600; color:var(--text); margin-top:.25rem; }
+    .card-close{ position:absolute; top:1rem; right:1rem; z-index:2; width:30px; height:30px; border-radius:4px; border:1px solid var(--line); background:#f4f7f6; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:1rem; transition:background .2s,color .2s; }
+    .card-close:hover{ background:var(--blue-deep); color:#fff; border-color:var(--blue-deep); }
+    .card-num{ width:38px; height:38px; border-radius:4px; background:var(--coral); color:#fff; font:800 15px/38px 'Manrope'; text-align:center; box-shadow:0 7px 16px rgba(176,43,38,.24); margin-bottom:1rem; }
+    .card-en{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:1.45rem; line-height:1.18; color:var(--blue-deep); letter-spacing:0; }
+    .card-cn{ font-size:.86rem; font-weight:700; color:var(--text); margin-top:.35rem; }
     .card-div{ height:1px; background:var(--line); margin:1.15rem 0 1rem; }
-    .card-lbl{ font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); font-weight:600; opacity:.7; margin-bottom:.7rem; }
-    .fac{ display:flex; align-items:baseline; gap:.6rem; padding:.5rem 0; border-bottom:1px dashed var(--line); }
+    .card-lbl{ font-size:.58rem; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:800; opacity:.78; margin-bottom:.7rem; }
+    .fac{ display:flex; align-items:baseline; gap:.6rem; padding:.52rem 0; border-bottom:1px solid var(--line); }
     .fac:last-child{ border-bottom:0; }
-    .fac .dot{ flex:none; width:5px; height:5px; border-radius:50%; background:var(--blue); transform:translateY(-2px); }
-    .fac .fcn{ font-size:.82rem; font-weight:600; color:var(--text); }
+    .fac .dot{ flex:none; width:5px; height:5px; border-radius:50%; background:var(--coral); transform:translateY(-2px); }
+    .fac .fcn{ font-size:.8rem; font-weight:700; color:var(--text); }
     .fac .fen{ font-size:.66rem; color:var(--sub); margin-left:auto; text-align:right; }
 
-    .hint{ position:fixed; bottom:1.4rem; left:50%; transform:translateX(-50%); z-index:18; display:flex; gap:1.4rem; align-items:center; padding:.65rem 1.35rem; border-radius:980px;
-      background:linear-gradient(150deg, rgba(255,255,255,.55), rgba(255,255,255,.28));
-      backdrop-filter:url(#liquid-glass) blur(8px) saturate(180%); -webkit-backdrop-filter:blur(14px) saturate(180%);
-      border:1px solid rgba(255,255,255,.6);
-      box-shadow:inset 0 1px 1px rgba(255,255,255,.9), 0 10px 30px rgba(31,58,108,.14);
+    .hint{ position:fixed; bottom:1.25rem; left:50%; transform:translateX(-50%); z-index:18; display:flex; gap:1.2rem; align-items:center; padding:.62rem 1.15rem; border-radius:6px;
+      background:rgba(248,250,248,.88);
+      backdrop-filter:blur(14px) saturate(108%); -webkit-backdrop-filter:blur(14px) saturate(108%);
+      border:1px solid var(--line);
+      box-shadow:0 10px 28px rgba(16,47,71,.13);
       font-size:.68rem; color:var(--sub); letter-spacing:.02em; opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .5s forwards; }
     .hint b{ color:var(--blue); font-weight:600; }
     .hint .sep{ width:1px; height:12px; background:var(--line); }
 
-    .reset{ position:fixed; bottom:1.5rem; right:1.5rem; z-index:18; display:flex; align-items:center; gap:.5rem; padding:.7rem 1.2rem; border:none; border-radius:980px; cursor:pointer; background:linear-gradient(150deg,#3168C8,var(--blue) 55%,var(--blue-deep)); color:#fff; font-size:.74rem; font-weight:600; letter-spacing:.03em; box-shadow:0 6px 20px rgba(36,84,164,.3); opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .6s forwards; transition:transform .3s, box-shadow .3s; }
-    .reset:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(36,84,164,.4); }
+    .reset{ position:fixed; bottom:1.25rem; right:1.25rem; z-index:18; display:flex; align-items:center; gap:.5rem; padding:.7rem 1rem; border:1px solid rgba(255,255,255,.2); border-radius:6px; cursor:pointer; background:var(--blue-deep); color:#fff; font-size:.72rem; font-weight:700; letter-spacing:.02em; box-shadow:0 8px 22px rgba(16,47,71,.25); opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .6s forwards; transition:transform .3s, box-shadow .3s, background .2s; }
+    .reset:hover{ transform:translateY(-2px); background:var(--blue); box-shadow:0 12px 30px rgba(16,47,71,.3); }
+    .reset-icon{ font-size:1rem; line-height:1; }
 
-    .compass{ position:fixed; top:5.4rem; right:1.6rem; z-index:18; width:54px; height:54px; border-radius:50%;
-      background:linear-gradient(150deg, rgba(255,255,255,.55), rgba(255,255,255,.28));
-      backdrop-filter:url(#liquid-glass) blur(6px) saturate(180%); -webkit-backdrop-filter:blur(14px) saturate(180%);
-      border:1px solid rgba(255,255,255,.6);
-      box-shadow:inset 0 1px 1px rgba(255,255,255,.9), 0 8px 22px rgba(31,58,108,.16);
+    .compass{ position:fixed; top:5rem; right:1.45rem; z-index:18; width:52px; height:52px; border-radius:50%;
+      background:rgba(248,250,248,.9);
+      backdrop-filter:blur(10px) saturate(110%); -webkit-backdrop-filter:blur(10px) saturate(110%);
+      border:1px solid var(--line);
+      box-shadow:0 8px 22px rgba(16,47,71,.14);
       display:flex; align-items:center; justify-content:center; opacity:0; animation:slideL .8s cubic-bezier(.16,1,.3,1) .55s forwards; }
     .compass .needle{ position:relative; width:100%; height:100%; }
     .compass .n,.compass .s{ position:absolute; left:50%; top:50%; width:0; height:0; }
-    .compass .n{ border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:19px solid var(--blue); transform:translate(-50%,-100%); }
-    .compass .s{ border-left:5px solid transparent; border-right:5px solid transparent; border-top:19px solid #c9d3e2; transform:translate(-50%,0); }
-    .compass .lbl{ position:absolute; top:5px; left:50%; transform:translateX(-50%); font-size:.52rem; font-weight:700; color:var(--blue); }
+    .compass .n{ border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:18px solid var(--coral); transform:translate(-50%,-100%); }
+    .compass .s{ border-left:5px solid transparent; border-right:5px solid transparent; border-top:18px solid #9eabb0; transform:translate(-50%,0); }
+    .compass .lbl{ position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:.5rem; font-weight:800; color:var(--blue-deep); }
 
-    .loader{ position:fixed; inset:0; z-index:50; background:#eef3fb; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem; transition:opacity .7s; }
+    .loader{ position:fixed; inset:0; z-index:50; background:#e1e9e6; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem; transition:opacity .7s; }
     .loader.hide{ opacity:0; pointer-events:none; }
-    .loader .ld-t{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:700; font-size:2.6rem; color:var(--blue); }
-    .ld-bar{ width:160px; height:3px; border-radius:3px; background:rgba(36,84,164,.15); overflow:hidden; }
-    .ld-bar i{ display:block; width:40%; height:100%; background:var(--blue); border-radius:3px; animation:ldmove 1s ease-in-out infinite; }
+    .loader .ld-t{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:2.2rem; color:var(--blue-deep); }
+    .ld-bar{ width:160px; height:3px; border-radius:3px; background:rgba(23,68,106,.16); overflow:hidden; }
+    .ld-bar i{ display:block; width:40%; height:100%; background:var(--coral); border-radius:3px; animation:ldmove 1s ease-in-out infinite; }
     @keyframes ldmove{ 0%{transform:translateX(-100%);} 100%{transform:translateX(350%);} }
 
     @keyframes slideL{ from{opacity:0; transform:translateY(-50%) translateX(-18px);} to{opacity:1; transform:translateY(-50%) translateX(0);} }
     @keyframes slideU{ from{opacity:0; transform:translateX(-50%) translateY(16px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
 
     /* mobile guide trigger (hidden on desktop) */
-    .guide-toggle{ display:none; position:fixed; bottom:1.5rem; left:1.1rem; z-index:32;
-      align-items:center; gap:.45rem; padding:.7rem 1.05rem; border:none; border-radius:980px; cursor:pointer;
-      background:linear-gradient(150deg,#3168C8,var(--blue) 55%,var(--blue-deep)); color:#fff;
-      font:600 .78rem 'Plus Jakarta Sans'; letter-spacing:.02em; box-shadow:0 6px 20px rgba(31,58,108,.34); }
+    .guide-toggle{ display:none; position:fixed; bottom:1.25rem; left:1.1rem; z-index:32;
+      align-items:center; gap:.45rem; padding:.7rem 1rem; border:1px solid rgba(255,255,255,.2); border-radius:6px; cursor:pointer;
+      background:var(--blue-deep); color:#fff;
+      font:700 .76rem 'Manrope'; letter-spacing:0; box-shadow:0 8px 22px rgba(16,47,71,.25); }
 
     @media (max-width:820px){
       .toptag{ display:none; }
       .topbar{ padding:.9rem 1.05rem; }
+      .brand{ gap:.45rem; }
+      .brand-mark{ width:27px; height:27px; }
+      .brand .u{ font-size:.82rem; letter-spacing:.14em; }
+      .brand .cn{ display:none; }
       .modebar{ top:.85rem; gap:1px; padding:4px; }
       .modebar .mode{ padding:.5rem .85rem; font-size:.68rem; }
       .compass{ width:46px; height:46px; top:4.6rem; right:1.1rem; }
       /* Campus Guide → bottom sheet */
       .guide{ top:auto; bottom:0; left:0; right:0; width:auto; max-height:64vh;
-        border-radius:24px 24px 0 0; transform:translateY(112%); opacity:1;
+        border-radius:6px 6px 0 0; transform:translateY(112%); opacity:1;
         animation:none; transition:transform .45s cubic-bezier(.16,1,.3,1); z-index:33; }
       .guide.open{ transform:translateY(0); }
-      .guide-toggle{ display:inline-flex; }
+      .guide.open ~ .reset{ opacity:0 !important; pointer-events:none; }
+      .guide.open ~ .guide-toggle{ bottom:calc(64vh - 1.1rem); background:var(--coral); z-index:34; }
+      .guide-toggle{ display:inline-flex; transition:bottom .45s cubic-bezier(.16,1,.3,1), opacity .2s; }
       .card{ width:auto; left:.8rem; right:.8rem; top:auto; bottom:5.7rem; transform:translateY(150%); max-height:48vh; z-index:34; }
       .card.show{ transform:translateY(0); }
       .hint{ display:none; }
-      .reset{ bottom:1.5rem; right:1.1rem; padding:.62rem 1.05rem; font-size:.74rem; }
+      .reset{ bottom:1.25rem; right:1.1rem; padding:.66rem .95rem; font-size:.72rem; }
     }
   </style>
 </head>
@@ -227,8 +231,11 @@
 
   <div class="topbar">
     <div class="brand">
-      <span class="u">ULINK</span>
-      <span class="cn">领科教育 · 校园 3D 导览</span>
+      <img class="brand-mark" src="./logo.png" alt="" />
+      <span class="brand-copy">
+        <span class="u">ULINK</span>
+        <span class="cn">领科教育 · 校园 3D 导览</span>
+      </span>
     </div>
     <span class="toptag">Interactive Campus Map</span>
   </div>
@@ -245,8 +252,8 @@
 
   <aside class="guide">
     <div class="guide-h">
-      <div class="t">Campus Guide</div>
-      <div class="s">点击建筑 · 探索校园</div>
+      <div class="t">校园导览</div>
+      <div class="s">Campus index · 点击建筑探索</div>
     </div>
     <div class="guide-list" id="guideList"></div>
   </aside>
@@ -267,7 +274,7 @@
     <span><b>点击</b> 查看建筑</span>
   </div>
 
-  <button class="reset" id="resetBtn"><span>重置视角</span></button>
+  <button class="reset" id="resetBtn"><span class="reset-icon" aria-hidden="true">↻</span><span>重置视角</span></button>
   <button class="guide-toggle" id="guideToggle">☰ 导览</button>
 
   <script type="importmap">
@@ -285,69 +292,86 @@
     import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
     /* ───────── DATA — real satellite layout (north up, west=left, entrance=south) ───────── */
-    const BLUE = 0x1F4E8C;                  // normal pins, logo, top toggle, guide card
-    const CORAL = 0xE0734A;                 // selected pin / highlighted building
-    const MAIN_IDS = new Set([1,12,16]);    // warm-stone main mass
-    const STONE = { mainFront:0xDCD3C4, mainTop:0xEFE9DD, secFront:0xD2CCBE, secTop:0xE4E0D6 };
+    const BLUE = 0x17446A;                  // Ulink blue for map outlines and interface accents
+    const CORAL = 0xD83A34;                 // school red for active selections
+    const MAIN_IDS = new Set([1,12,16]);    // red-brick campus landmarks
+    const STONE = {
+      mainFront:0xB96858, mainTop:0xF2F1EB,
+      secFront:0xD8DCD9, secTop:0xF4F4EF,
+      trim:0xF4F1E8, glass:0x486777
+    };
     const BUILDINGS = [
       // ── North ──
-      {id:1, cn:'宿舍楼', en:'Dormitory', pos:[-6,-37], size:[28,7], h:11, wall:0xb6745a, dorm:true,
+      {id:1, cn:'宿舍楼', en:'Dormitory', pos:[-6,-37], size:[28,7], h:11, wall:0xD9CDB7, dorm:true,
         fac:[['1号宿舍','Dorm 1'],['2号宿舍','Dorm 2'],['3号宿舍','Dorm 3']]},
-      {id:2, cn:'网球场', en:'Tennis Courts', pos:[34,-36], size:[12,9], h:0.5, flat:true, court:0x3d7d5a, pinY:6,
+      {id:2, cn:'网球场', en:'Tennis Courts', pos:[34,-36], size:[12,9], h:0.5, flat:true, court:0x5F856C, pinY:6,
         fac:[['室外网球场','Outdoor Tennis Courts']]},
-      {id:3, cn:'田径运动场', en:'Athletics Field', pos:[0,-22], size:[26,13], h:0.5, flat:true, court:0xCBD6B0, pinY:7,
+      {id:3, cn:'田径运动场', en:'Athletics Field', pos:[0,-22], size:[26,13], h:0.5, flat:true, court:0xB86D62, pinY:7,
         fac:[['标准跑道','Running Track'],['足球场','Soccer Pitch']]},
       // ── Mid band ──
-      {id:4, cn:'智慧餐厅', en:'Smart Canteen', pos:[-32,-12], size:[7,6], h:7, wall:0xcf9b6f,
-        fac:[['自助取餐','Smart Self-service Dining']]},
-      {id:5, cn:'中餐厅', en:'Chinese Canteen', pos:[-33,-4], size:[8,10], h:9, wall:0xcf9b6f, roof:0x6f86b8,
-        fac:[['中餐档口','Chinese Dining Hall']]},
-      {id:6, cn:'便利店', en:'Convenience Store', pos:[-6,-13], size:[6,4], h:5, wall:0xcf9b6f,
-        fac:[['便利店','Convenience Store'],['超市','Grocery']]},
+      {id:4, cn:'智慧餐厅', en:'Smart Canteen', pos:[-32,-12], size:[7,6], h:4.6, wall:0xD8C7A8,
+        fac:[['机器人烧的饭','Robot-cooked meals']]},
+      {id:5, cn:'中餐厅', en:'Chinese Canteen', pos:[-33,-4], size:[8,10], h:4.6, wall:0xD8C7A8, roof:0xB7BEA2,
+        fac:[['各种美食','All kinds of food']]},
+      {id:6, cn:'便利店', en:'Convenience Store', pos:[-6,-13], size:[6,4], h:5, wall:0xD8C7A8,
+        fac:[['便利店','Convenience Store']]},
       {id:7, cn:'风雨篮球场', en:'Covered Basketball Court', pos:[1.75,-7], size:[32.5,9], h:6, open:true, halfRoof:true,
         fac:[['室内篮球场（有顶）','Covered Basketball Court'],['室外篮球场（无顶）','Open Basketball Court']]},
-      {id:8, cn:'行政服务中心', en:'Administration Center', pos:[9,-14], size:[9,5], h:8, wall:0xcf9b6f,
+      {id:8, cn:'行政服务中心', en:'Administration Center', pos:[9,-14], size:[9,5], h:8, wall:0xD8C7A8,
         fac:[['医务室','Medic Room'],['体育器材室','PE Storage'],['职能部门办公室','Admin Offices']]},
-      {id:9, cn:'体育馆', en:'Gymnasium', pos:[34,-7], size:[12,9], h:12, wall:0xc47e57,
+      {id:9, cn:'体育馆', en:'Gymnasium', pos:[34,-7], size:[12,9], h:12, wall:0xD5C1A5,
         fac:[['室内篮球馆','Basketball Hall'],['音乐教室','Music Room']]},
-      {id:10, cn:'健身房', en:'Fitness Center', pos:[43,-7], size:[5,7], h:8, wall:0xc47e57,
+      {id:10, cn:'健身房', en:'Fitness Center', pos:[43,-7], size:[5,7], h:8, wall:0xD5C1A5,
         fac:[['健身房','Fitness Room']]},
       // ── Center ──
-      {id:12, cn:'综合楼', en:'Multi-function Building', pos:[2,5], size:[32,11], h:15, wall:0xc98a63, landmark:true,
+      {id:12, cn:'综合楼', en:'Multi-function Building', pos:[2,5], size:[32,11], h:15, wall:0xE8DFCD, landmark:true,
         fac:[['图书馆','Library'],['化学实验室','Chemistry Lab'],['咖啡吧','Cafe'],['教师办公室',"Teachers' Office"]]},
-      {id:13, cn:'艺术楼', en:'Art Building', pos:[32,19], size:[9,9], h:11, wall:0xc47e57,
+      {id:13, cn:'艺术楼', en:'Art Building', pos:[32,19], size:[9,9], h:11, wall:0xD5C1A5,
         fac:[['阶梯教室','Auditorium'],['网络教室','Web Conf. Room'],['艺术教室','Art Classroom'],['黑箱剧场','Blackbox Theater']]},
       // ── Lower-mid ──
-      {id:14, cn:'剑桥楼', en:'Cambridge Building', pos:[-31,21.5], size:[7,27], h:12, wall:0xb96f4e,
-        fac:[['A-LEVEL 教室','A-Level Classroom']]},
-      {id:15, cn:'初中部', en:'Middle School', pos:[34,5], size:[8,12], h:13, wall:0xb96f4e,
+      {id:14, cn:'剑桥楼', en:'Cambridge Building', pos:[-31,21.5], size:[7,27], h:12, wall:0xD8C7A8,
+        fac:[['各种教室','Various classrooms']]},
+      {id:15, cn:'初中部', en:'Middle School', pos:[34,5], size:[8,12], h:13, wall:0xD8C7A8,
         fac:[['六–九年级教室','Grade 6–9 Classrooms'],['初中校长室','Principal Office'],['年级组办公室','Grade Office']]},
       // ── South ──
-      {id:16, cn:'IB 教室（创意港）', en:'IB Classroom · Innovation Bay', pos:[-42,28], size:[3,14], h:11, wall:0xc47e57,
-        fac:[['IB 教学区','IB Classroom'],['科创教室','STEM Zone']]},
-      {id:17, cn:'SABIS 楼', en:'SABIS Building', pos:[32,29], size:[7,11], h:11, wall:0xb96f4e,
+      {id:16, cn:'IB 教室（创意港）', en:'IB Classroom · Innovation Bay', pos:[-42,28], size:[3,14], h:4.6, wall:0xE8DFCD,
+        fac:[['IB 教学区','IB Classroom']]},
+      {id:17, cn:'SABIS 楼', en:'SABIS Building', pos:[32,29], size:[7,11], h:11, wall:0xD8C7A8,
         fac:[['SABIS 教学区','SABIS Classroom']]},
-      {id:18, cn:'1# 实验室', en:'Science Center 1#', pos:[45.5,28], size:[4,8], h:11, wall:0xc47e57,
+      {id:18, cn:'1# 实验室', en:'Science Center 1#', pos:[45.5,28], size:[4,8], h:4.6, wall:0xD5C1A5,
         fac:[['计算机实验室','Computer Lab'],['生物实验室','Biology Lab'],['教师办公室',"Teachers' Office"]]},
-      {id:19, cn:'2# 实验室', en:'Science Center 2#', pos:[30.75,40], size:[33.5,6], h:9, wall:0xc47e57,
+      {id:19, cn:'2# 实验室', en:'Science Center 2#', pos:[30.75,40], size:[33.5,6], h:9, wall:0xD5C1A5,
         fac:[['物理实验室','Physics Lab'],['考试中心','Exam Center']]},
       // ── Lockers (small) ──
-      {id:20, cn:'外卖柜', en:'Takeout Lockers', pos:[-36.5,-11.5], size:[1.5,3], h:2.5, wall:0xe08a3d, locker:true, pinY:5,
+      {id:20, cn:'外卖柜', en:'Takeout Lockers', pos:[-36.5,-11.5], size:[1.5,3], h:2.5, wall:0xCBA756, locker:true, pinY:5,
         fac:[['外卖暂存柜','Takeout Pickup Lockers']]},
-      {id:21, cn:'快递柜', en:'Parcel Lockers', pos:[-14,39], size:[2,3], h:2.5, wall:0x3368C0, locker:true, pinY:5,
+      {id:21, cn:'快递柜', en:'Parcel Lockers', pos:[-14,39], size:[2,3], h:2.5, wall:0x84946F, locker:true, pinY:5,
         fac:[['快递收发柜','Parcel Pickup Lockers']]},
+      {id:22, cn:'厕所', en:'Restroom', pos:[51.5,37.2], size:[3,3], h:3.2, wall:0xD8C7A8, locker:true, pinY:5.2,
+        fac:[['厕所','Restroom']]},
+    ];
+    const EXTRA_CLASSROOMS = [
+      {key:'art', no:'A', cn:'美术教室', en:'Art Classroom', buildingId:13, buildingCn:'艺术楼', buildingEn:'Art Building',
+        floor:'2F', where:'艺术楼 · 2F', offset:[0,7.8,0],
+        fac:[['所在楼栋','艺术楼'],['楼层','2F'],['说明','IB 学生附加教室']]},
+      {key:'physics', no:'P', cn:'物理实验室', en:'Physics Lab', buildingId:19, buildingCn:'2# 实验室', buildingEn:'Science Center 2#',
+        floor:'1F 东南角', where:'2# 实验室 · 1F 东南角', offset:[13.75,1.4,1.5],
+        fac:[['所在楼栋','2# 实验室'],['位置','1F 东南角'],['说明','IB 学生附加教室']]},
+      {key:'biology', no:'B', cn:'生物实验室', en:'Biology Lab', buildingId:12, buildingCn:'综合楼', buildingEn:'Multi-function Building',
+        floor:'1F 西北角', where:'综合楼 · 1F 西北角', offset:[-13,1.4,-3.5],
+        fac:[['所在楼栋','综合楼'],['位置','1F 西北角'],['说明','IB 学生附加教室']]},
     ];
 
     /* ───────── SCENE ───────── */
     const app = document.getElementById('app');
     const scene = new THREE.Scene();
-    (function(){   // fresh sky-blue vertical gradient backdrop (matches the welcome cover)
+    (function(){   // cool daylight backdrop keeps the red brick and greenery crisp
       const c=document.createElement('canvas'); c.width=2; c.height=256; const x=c.getContext('2d');
-      const g=x.createLinearGradient(0,0,0,256); g.addColorStop(0,'#BFD9EC'); g.addColorStop(1,'#EAF3F8');
+      const g=x.createLinearGradient(0,0,0,256); g.addColorStop(0,'#AFCBD5'); g.addColorStop(0.56,'#DDE9E7'); g.addColorStop(1,'#EEF1EA');
       x.fillStyle=g; x.fillRect(0,0,2,256);
       const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; scene.background=t;
     })();
-    scene.fog = new THREE.Fog(0xEAF3F8, 175, 345);
+    scene.fog = new THREE.Fog(0xDDE7E3, 180, 350);
 
     const camera = new THREE.PerspectiveCamera(46, innerWidth/innerHeight, 0.1, 1000);
 
@@ -357,6 +381,8 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     app.appendChild(renderer.domElement);
 
     const labelRenderer = new CSS2DRenderer();
@@ -364,14 +390,15 @@
     labelRenderer.domElement.className = 'labels';
     app.appendChild(labelRenderer.domElement);
 
-    const sun = new THREE.DirectionalLight(0xFFF6E8, 1.15);   // warm key — upper-left 45°, tops catch most light
-    sun.position.set(-62, 88, 46); sun.castShadow = true;
+    const sun = new THREE.DirectionalLight(0xFFFDF4, 2.15);
+    sun.position.set(-68, 92, 52); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 10; sun.shadow.camera.far = 280;
     sun.shadow.camera.left = -100; sun.shadow.camera.right = 100;
     sun.shadow.camera.top = 100; sun.shadow.camera.bottom = -100;
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6; scene.add(sun);
-    scene.add(new THREE.AmbientLight(0xDCE8F0, 0.5));   // soft sky fill — warm stone albedo carries the warmth
+    scene.add(new THREE.HemisphereLight(0xDCEAF0, 0x778276, 1.35));
+    scene.add(new THREE.AmbientLight(0xF2F4EE, 0.24));
 
     function radialTex(inner, outer, ir, or_){
       const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
@@ -380,14 +407,14 @@
       const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
     }
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(300,300),
-      new THREE.MeshStandardMaterial({ map:radialTex('#F3EFE6','#E4DECF',24,182), roughness:1, metalness:0 }));
+      new THREE.MeshStandardMaterial({ map:radialTex('#DDE3DA','#B7C2B9',24,182), roughness:1, metalness:0 }));
     ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
 
     /* soft contact-shadow blob — presses each building onto the ground */
     const shadowTex = (function(){
       const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
       const g=x.createRadialGradient(64,64,6,64,64,64);
-      g.addColorStop(0,'rgba(70,60,46,0.26)'); g.addColorStop(0.55,'rgba(70,60,46,0.12)'); g.addColorStop(1,'rgba(70,60,46,0)');
+      g.addColorStop(0,'rgba(28,43,51,0.25)'); g.addColorStop(0.55,'rgba(28,43,51,0.10)'); g.addColorStop(1,'rgba(28,43,51,0)');
       x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c);
     })();
     function contactShadow(cx,cz,w,d){
@@ -403,19 +430,17 @@
       scene.add(m); return m;
     }
 
-    /* Base platform — warm off-white (blends with the radial ground) */
-    flatRect(116, 96, 0xEFEAE0, 0, -2, 0.01);
-    /* Track surface — muted clay */
-    flatRect(36, 18, 0xC0A187, 0, -22, 0.02);
-    /* Central lawn (fresh sage) + parking strips (warm grey) */
-    flatRect(30, 22, 0xCBD6B0, 0, 18, 0.03);
-    flatRect(4, 20, 0xD0C9BC, -12, 18, 0.04);
-    flatRect(4, 20, 0xD0C9BC,  12, 18, 0.04);
+    /* Campus base, track, lawn and circulation surfaces */
+    flatRect(116, 96, 0xC9D0CA, 0, -2, 0.01);
+    flatRect(36, 18, 0xB86D62, 0, -22, 0.02);
+    flatRect(30, 22, 0x71916D, 0, 18, 0.03);
+    flatRect(4, 20, 0xAEB8B7, -12, 18, 0.04);
+    flatRect(4, 20, 0xAEB8B7,  12, 18, 0.04);
     /* Entrance plaza + main path */
-    flatRect(24, 12, 0xDED7C9, 0, 41, 0.03);
-    flatRect(9, 20, 0xE3DCCE, 0, 31, 0.04);
+    flatRect(24, 12, 0xB9C1BF, 0, 41, 0.03);
+    flatRect(9, 20, 0xD6DAD5, 0, 31, 0.04);
     /* Perimeter ring path */
-    flatRect(104, 4, 0xE3DCCE, 0, -40, 0.025);
+    flatRect(104, 4, 0xD6DAD5, 0, -40, 0.025);
 
     /* ───────── BUILDER ───────── */
     const groups = {};
@@ -425,10 +450,13 @@
       const g = new THREE.Group();
       const [w,d] = b.size, h = b.h;
       const isMain = MAIN_IDS.has(b.id);
-      const wallMat = new THREE.MeshStandardMaterial({ color: isMain?STONE.mainFront:STONE.secFront, roughness:.92, metalness:0 });
+      const utilityColor = b.id===20 ? 0xD4A94F : b.id===21 ? 0x557A98 : 0xD5D8D2;
+      const wallMat = new THREE.MeshStandardMaterial({ color: b.locker?utilityColor:(isMain?STONE.mainFront:STONE.secFront), roughness:.84, metalness:0 });
       wallMat.emissive = new THREE.Color(CORAL); wallMat.emissiveIntensity = 0;
-      const roofMat = new THREE.MeshStandardMaterial({ color: isMain?STONE.mainTop:STONE.secTop, roughness:.9, metalness:0 });
+      const roofMat = new THREE.MeshStandardMaterial({ color: isMain?STONE.mainTop:STONE.secTop, roughness:.76, metalness:0 });
       roofMat.emissive = new THREE.Color(CORAL); roofMat.emissiveIntensity = 0;
+      const trimMat = new THREE.MeshStandardMaterial({ color:STONE.trim, roughness:.72, metalness:0 });
+      const glassMat = new THREE.MeshStandardMaterial({ color:STONE.glass, roughness:.55, metalness:.08 });
       let mats = [wallMat, roofMat];
       const lowProfile = !!(b.flat || b.locker);
 
@@ -440,6 +468,10 @@
           m.position.set(ox,bh/2,0); m.castShadow=m.receiveShadow=true; m.userData.pick=b.id; g.add(m);
           const r = new THREE.Mesh(new THREE.BoxGeometry(bw+.5,.6,7.5), roofMat);
           r.position.set(ox,bh+.3,0); r.castShadow=true; g.add(r);
+          const windows = new THREE.Mesh(new THREE.BoxGeometry(bw*.7,Math.max(.55,bh*.1),.14), glassMat);
+          windows.position.set(ox,bh*.58,3.57); g.add(windows);
+          const trim = new THREE.Mesh(new THREE.BoxGeometry(bw*.92,.22,.18), trimMat);
+          trim.position.set(ox,bh*.42,3.6); g.add(trim);
         });
       } else if(b.flat){
         const padMat = new THREE.MeshStandardMaterial({ color:b.court, roughness:.92 });
@@ -448,14 +480,14 @@
         const pad = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), padMat);
         pad.position.y = 0.25; pad.receiveShadow = true; pad.userData.pick=b.id; g.add(pad);
         /* white outline lines */
-        const lineMat = new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:.8 });
+        const lineMat = new THREE.LineBasicMaterial({ color:0xF5F5EE, transparent:true, opacity:.9 });
         const ow=w*0.9/2, od=d*0.9/2;
         const pts = [[-ow,-od],[ow,-od],[ow,od],[-ow,od],[-ow,-od]].map(p=>new THREE.Vector3(p[0],0.52,p[1]));
         g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
         g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
           [new THREE.Vector3(-ow,0.52,0), new THREE.Vector3(ow,0.52,0)]), lineMat));
       } else if(b.open){
-        const padMat = new THREE.MeshStandardMaterial({ color:0x93a08c, roughness:.92 });
+        const padMat = new THREE.MeshStandardMaterial({ color:0x66856F, roughness:.9 });
         padMat.emissive = new THREE.Color(CORAL); padMat.emissiveIntensity = 0;
         mats = [padMat];
         const pad = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), padMat);
@@ -467,20 +499,20 @@
 
         /* divider line between covered (north) and open (south) halves */
         if(b.halfRoof){
-          const lineMat = new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:.7 });
+          const lineMat = new THREE.LineBasicMaterial({ color:0xF5F5EE, transparent:true, opacity:.86 });
           g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
             [new THREE.Vector3(-w/2,0.52,0), new THREE.Vector3(w/2,0.52,0)]), lineMat));
         }
 
-        /* orange key markings inside the covered court */
-        const keyMat = new THREE.MeshStandardMaterial({ color:0xC79A6B, roughness:.9 });
+        /* warm court markings inside the covered court */
+        const keyMat = new THREE.MeshStandardMaterial({ color:0xD1AA63, roughness:.86 });
         [-1,1].forEach(s=>{
           const key = new THREE.Mesh(new THREE.BoxGeometry(w*0.2,0.52,rd*0.55), keyMat);
           key.position.set(s*(w/2-w*0.1),0.27,rz); g.add(key);
         });
 
         /* pillars around the roofed region */
-        const pillarMat = new THREE.MeshStandardMaterial({ color:0xdfe6ef, roughness:.7 });
+        const pillarMat = new THREE.MeshStandardMaterial({ color:0xEDF0EB, roughness:.68 });
         const cx=w/2-1, z0=rz-rd/2+1, z1=rz+rd/2-1;
         [[-cx,z0],[0,z0],[cx,z0],[-cx,z1],[0,z1],[cx,z1]].forEach(([px,pz])=>{
           const p = new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,h,8), pillarMat);
@@ -489,7 +521,7 @@
 
         /* canopy over the roofed region only */
         const canopy = new THREE.Mesh(new THREE.BoxGeometry(w+1.4,.5,rd+1.4),
-          new THREE.MeshStandardMaterial({ color:0xe8edf4, roughness:.6 }));
+          new THREE.MeshStandardMaterial({ color:0xE9ECE8, roughness:.64 }));
         canopy.position.set(0,h,rz); canopy.castShadow=true; g.add(canopy);
         mats.push(canopy.material);
       } else if(b.locker){
@@ -502,15 +534,22 @@
         body.position.y = h/2; body.castShadow=body.receiveShadow=true; body.userData.pick=b.id; g.add(body);
         const roof = new THREE.Mesh(new THREE.BoxGeometry(w+.7,.8,d+.7), roofMat);
         roof.position.y = h+.4; roof.castShadow=true; g.add(roof);
+        const frontZ=d/2+.08;
+        [0.37,0.68].forEach(level=>{
+          const windows = new THREE.Mesh(new THREE.BoxGeometry(w*.72,Math.max(.5,h*.085),.14), glassMat);
+          windows.position.set(0,h*level,frontZ); g.add(windows);
+        });
+        const trim = new THREE.Mesh(new THREE.BoxGeometry(w*.94,.24,.18), trimMat);
+        trim.position.set(0,h*.53,frontZ+.02); g.add(trim);
         if(b.landmark){
           const tw=w*0.3, th=h*0.5;
           const tower = new THREE.Mesh(new THREE.BoxGeometry(tw,th,tw), wallMat);
           tower.position.y = h+th/2; tower.castShadow=true; tower.userData.pick=b.id; g.add(tower);
           const dome = new THREE.Mesh(new THREE.SphereGeometry(tw*0.5,28,18),
-            new THREE.MeshStandardMaterial({ color:0xD8CBB6, roughness:.9, metalness:0 }));
+            new THREE.MeshStandardMaterial({ color:0xE7E7E1, roughness:.78, metalness:0 }));
           dome.position.y = h+th+tw*0.16; dome.castShadow=true; g.add(dome);
           const spire = new THREE.Mesh(new THREE.ConeGeometry(0.26,2.2,12),
-            new THREE.MeshStandardMaterial({ color:0xC8BDAB, roughness:.7, metalness:0 }));
+            new THREE.MeshStandardMaterial({ color:0x7B8588, roughness:.65, metalness:.08 }));
           spire.position.y = h+th+tw*0.16+tw*0.5+1.0; g.add(spire);
         }
       }
@@ -538,10 +577,47 @@
       g.userData.allMats = allMats; g.userData.opacity = 1;
     }
     BUILDINGS.forEach(buildFacility);
+    function extraWorld(extra){
+      const b = BUILDINGS.find(x=>x.id===extra.buildingId);
+      return new THREE.Vector3(b.pos[0]+extra.offset[0], extra.offset[1], b.pos[1]+extra.offset[2]);
+    }
+    const extraMarkers = {};
+    EXTRA_CLASSROOMS.forEach(extra=>{
+      const p = extraWorld(extra);
+      const root = new THREE.Group();
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.72,24,16),
+        new THREE.MeshStandardMaterial({ color:CORAL, roughness:.55, metalness:0, emissive:CORAL, emissiveIntensity:.18 }));
+      dot.position.copy(p); dot.castShadow = true; root.add(dot);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.02,0.08,8,36),
+        new THREE.MeshStandardMaterial({ color:0xF8FAF8, roughness:.7, metalness:0 }));
+      ring.position.set(p.x, p.y-0.05, p.z); ring.rotation.x = Math.PI/2; root.add(ring);
+      const div = document.createElement('div');
+      div.className = 'extra-tag';
+      div.innerHTML = `<span class="dot"></span><span class="label">${extra.cn}</span>`;
+      div.style.display = 'none';
+      const label = new CSS2DObject(div);
+      label.position.set(p.x, p.y+2.15, p.z);
+      root.add(label);
+      root.visible = false;
+      scene.add(root);
+      extraMarkers[extra.key] = { root, dot, ring, label, el:div };
+    });
+    function setExtraMarkerVisible(key, visible){
+      const marker = extraMarkers[key];
+      if(!marker) return;
+      marker.root.visible = visible;
+      marker.dot.visible = visible;
+      marker.ring.visible = visible;
+      marker.label.visible = visible;
+      marker.el.style.display = visible ? '' : 'none';
+    }
+    function hideExtraMarkers(){
+      EXTRA_CLASSROOMS.forEach(extra=> setExtraMarkerVisible(extra.key, false));
+    }
 
     /* Entrance arch */
     const arch = new THREE.Mesh(new THREE.TorusGeometry(7,0.6,12,40,Math.PI),
-      new THREE.MeshStandardMaterial({ color:0xC5C7C5, roughness:.85, metalness:0 }));
+      new THREE.MeshStandardMaterial({ color:0xE8E9E4, roughness:.78, metalness:0 }));
     arch.position.set(0,0,42); arch.scale.set(1.5,1,1); arch.castShadow=true; scene.add(arch);
 
     /* ───────── TREES ───────── */
@@ -550,8 +626,8 @@
       const foliageGeo = new THREE.ConeGeometry(1.7,4.2,7);
       const trunkGeo = new THREE.CylinderGeometry(0.28,0.34,1.8,6);
       const foliageMat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:1, metalness:0, flatShading:true });
-      const trunkMat = new THREE.MeshStandardMaterial({ color:0x6B5746, roughness:1, metalness:0 });
-      const FOLIAGE = [new THREE.Color(0x8AA06E), new THREE.Color(0x6E8B5E)];   // two matte greens
+      const trunkMat = new THREE.MeshStandardMaterial({ color:0x685847, roughness:1, metalness:0 });
+      const FOLIAGE = [new THREE.Color(0x496B52), new THREE.Color(0x64805B), new THREE.Color(0x7B9168)];
       const pts = [];
       const blocked = (x,z)=>{
         if(Math.abs(x)<16 && z>6 && z<30) return true;          // central lawn
@@ -579,7 +655,7 @@
         q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.random()*Math.PI);
         m.compose(new THREE.Vector3(p[0], 1.8 + (4.2*s)/2, p[1]), q, new THREE.Vector3(s,s,s)); foliage.setMatrixAt(i,m);
         m.compose(new THREE.Vector3(p[0], 0.9, p[1]), q, new THREE.Vector3(s,s,s)); trunk.setMatrixAt(i,m);
-        foliage.setColorAt(i, FOLIAGE[Math.random()<0.5?0:1]);
+        foliage.setColorAt(i, FOLIAGE[Math.floor(Math.random()*FOLIAGE.length)]);
       });
       foliage.instanceColor.needsUpdate = true;
       scene.add(foliage, trunk);
@@ -620,9 +696,17 @@
     }
 
     /* ───────── SELECTION ───────── */
-    let selectedId=null, hoveredId=null, pinHoverId=null;
+    let selectedId=null, selectedExtraKey=null, hoveredId=null, pinHoverId=null;
     let hiddenIds = new Set(), currentMode = 'campus';
+    function getExtra(key){ return EXTRA_CLASSROOMS.find(x=>x.key===key); }
+    function clearExtraSelection(){
+      selectedExtraKey = null;
+      hideExtraMarkers();
+      Object.values(groups).forEach(g=>{ if(!hiddenIds.has(g.userData.id)) g.userData.opacity = 1; });
+      setActiveExtra(null);
+    }
     function selectBuilding(id){
+      clearExtraSelection();
       selectedId = id;
       const g=groups[id], s=g.userData.size, h=g.userData.h, c=g.position;
       const reach = (Math.max(s[0], s[1], h)*1.5 + 24) * (innerWidth/innerHeight < 1 ? 1.4 : 1);
@@ -630,8 +714,33 @@
       const tar = new THREE.Vector3(c.x, Math.max(h,4)*0.45, c.z);
       flyTo(pos,tar,1100); showCard(id); setActive(id);
     }
+    function selectExtraClassroom(key){
+      const extra = getExtra(key);
+      const b = BUILDINGS.find(x=>x.id===extra.buildingId);
+      if(currentMode!=='campus'){
+        currentMode = 'campus';
+        floorCut.visible = false;
+        floorLabels.forEach(l=> l.visible = false);
+        setTreesVisible(true);
+        modebar.querySelectorAll('.mode').forEach(btn=> btn.classList.toggle('active', btn.dataset.mode==='campus'));
+        moveInd(modebar.querySelector('.mode[data-mode="campus"]'));
+      }
+      selectedId = null;
+      selectedExtraKey = key;
+      hiddenIds = new Set();
+      EXTRA_CLASSROOMS.forEach(item=> setExtraMarkerVisible(item.key, item.key===key));
+      Object.values(groups).forEach(g=>{ g.userData.opacity = g.userData.id===extra.buildingId ? 1 : 0.18; });
+      const target = extraWorld(extra);
+      const reach = (Math.max(b.size[0], b.size[1], b.h)*1.25 + 24) * (innerWidth/innerHeight < 1 ? 1.35 : 1);
+      const pos = new THREE.Vector3(target.x + reach*0.58, target.y + reach*0.58 + 8, target.z + reach*0.86);
+      const tar = new THREE.Vector3(target.x, target.y, target.z);
+      flyTo(pos, tar, 1100);
+      showExtraCard(extra);
+      setActive(null);
+      setActiveExtra(key);
+    }
     function deselect(){
-      selectedId=null; document.getElementById('card').classList.remove('show'); setActive(null);
+      selectedId=null; clearExtraSelection(); document.getElementById('card').classList.remove('show'); setActive(null);
       if(currentMode==='campus') flyTo(ovPos(),OVERVIEW_TAR,1100);
     }
 
@@ -642,15 +751,25 @@
       document.getElementById('cardNum').textContent = id;
       document.getElementById('cardEn').textContent = b.en;
       document.getElementById('cardCn').textContent = b.cn;
+      document.querySelector('.card-lbl').textContent = 'Facilities · 设施';
       document.getElementById('cardFac').innerHTML = b.fac.map(f=>
+        `<div class="fac"><span class="dot"></span><span class="fcn">${f[0]}</span><span class="fen">${f[1]}</span></div>`).join('');
+      card.classList.add('show');
+    }
+    function showExtraCard(extra){
+      document.getElementById('cardNum').textContent = extra.no;
+      document.getElementById('cardEn').textContent = extra.en;
+      document.getElementById('cardCn').textContent = extra.cn;
+      document.querySelector('.card-lbl').textContent = 'Location · 位置';
+      document.getElementById('cardFac').innerHTML = extra.fac.map(f=>
         `<div class="fac"><span class="dot"></span><span class="fcn">${f[0]}</span><span class="fen">${f[1]}</span></div>`).join('');
       card.classList.add('show');
     }
     /* ── Floor-1 interiors for buildings 16 & 14 (from design plan) ── */
     const ROOM_COLORS = {
-      classroom:0x7f9fd6, office:0xd9b06a, toilet:0x5bbcd6, meeting:0x83c084,
-      rest:0xe0a062, storage:0xaab2bf, computer:0xd87f6a, corridor:0xe3ebf4, room:0xc2ccd9, exit:0x2454A4,
-      open:0xEAE3D3
+      classroom:0xA7C0AF, office:0xD9B7A8, toilet:0x9EBFC8, meeting:0xB6C6D1,
+      rest:0xD8C58D, storage:0xB8BFC0, computer:0xC98E86, corridor:0xE8ECE9, room:0xC9CED5, exit:0x17446A,
+      open:0xE2E5DC
     };
     const ROOMS16 = [
       {code:'C01', type:'office'},
@@ -671,9 +790,9 @@
     const floorCut = (function buildInteriors(){
       const root = new THREE.Group();
       const FH=3.2, WH=2.6, WT=0.25;
-      const baseMat = new THREE.MeshStandardMaterial({ color:0xeef2f8, roughness:.95 });
-      const wallMat = new THREE.MeshStandardMaterial({ color:0x97a2b2, roughness:.8, side:THREE.DoubleSide });
-      const edgeMat = new THREE.LineBasicMaterial({ color:0x1F4E8C, transparent:true, opacity:.7 });
+      const baseMat = new THREE.MeshStandardMaterial({ color:0xEDF0EC, roughness:.95 });
+      const wallMat = new THREE.MeshStandardMaterial({ color:0x9CA8A7, roughness:.82, side:THREE.DoubleSide });
+      const edgeMat = new THREE.LineBasicMaterial({ color:0x17446A, transparent:true, opacity:.7 });
       const tileMats = {};
       const tileMat = t => tileMats[t] || (tileMats[t]=new THREE.MeshStandardMaterial({ color:ROOM_COLORS[t]??ROOM_COLORS.room, roughness:.85 }));
       /* wall = thin raised box (the "lines" from the plan) */
@@ -743,13 +862,18 @@
       // central corridor ------------------------------------------------
       const cX0=wX1, cX1=-2.2;
       tileCell(g14, cX0, cX1, -HD, HD, {code:'走廊', type:'corridor'});
-      vWall(g14,-HD,HD,cX1);                          // wall: corridor | east band
 
       // east band -------------------------------------------------------
       const eX0=cX1, eX1=W14/2, sMid=0.2;
       const corT=1.5;                                 // cross-corridor thickness
       // computer room (top-left) + L-corridor wrapping its right & bottom
       const compX=eX0+0.52*(eX1-eX0), compZ=-10, cor1=-8.5;
+      const r1a=cor1, r1b=-3.5;
+      const r2a=r1b+corT, r2b=9.5, r2m=(r2a+r2b)/2;
+      vWall(g14, -HD, compZ, cX1);                    // corridor | east band, with three openings
+      vWall(g14, cor1, r1b, cX1);
+      vWall(g14, r1b+corT, r2b, cX1);
+      vWall(g14, r2b+corT, HD, cX1);
       tileCell(g14, eX0, compX, -HD, compZ, {code:'计算机教室', type:'computer'});
       tileCell(g14, compX, eX1, -HD, cor1, {type:'corridor'});   // right of computer room
       tileCell(g14, eX0, compX, compZ, cor1, {type:'corridor'}); // below computer room
@@ -758,7 +882,6 @@
       hWall(g14, eX0, eX1, cor1);                     // corridor1 south wall = row-1 north
 
       // row 1 — 会议室 (small) | 办公室 (open)
-      const r1a=cor1, r1b=-3.5;
       tileCell(g14, eX0, sMid, r1a, r1b, {code:'会议室', type:'meeting'});
       tileCell(g14, sMid, eX1, r1a, r1b, {code:'办公室', type:'open'});
       vWall(g14, r1a, r1b, sMid);
@@ -767,7 +890,6 @@
       hWall(g14, eX0, eX1, r1b); hWall(g14, eX0, eX1, r1b+corT);
 
       // row 2 — 会议室 + 休息区 (small, stacked) | student center (open)
-      const r2a=r1b+corT, r2b=9.5, r2m=(r2a+r2b)/2;
       tileCell(g14, eX0, sMid, r2a, r2m, {code:'会议室', type:'meeting'});
       tileCell(g14, eX0, sMid, r2m, r2b, {code:'休息区', type:'rest'});
       hWall(g14, eX0, sMid, r2m);
@@ -794,7 +916,7 @@
     function setTreesVisible(v){ treeMeshes.forEach(m=> m.visible = v); }
     function setMode(mode){
       currentMode = mode;
-      card.classList.remove('show'); selectedId=null; setActive(null);
+      card.classList.remove('show'); selectedId=null; clearExtraSelection(); setActive(null);
       floorCut.visible = (mode==='floor');
       floorLabels.forEach(l=> l.visible = (mode==='floor'));
       if(mode==='campus'){
@@ -820,17 +942,45 @@
     document.getElementById('resetBtn').onclick = ()=> activateMode('campus');
 
     const guideList = document.getElementById('guideList');
-    guideList.innerHTML = BUILDINGS.map(b=>
-      `<div class="gitem" data-id="${b.id}">
-        <span class="n">${b.id}</span>
-        <span class="tx"><div class="cn">${b.cn}</div><div class="en">${b.en}</div></span>
-      </div>`).join('');
-    guideList.querySelectorAll('.gitem').forEach(el=> el.onclick = ()=>{ selectBuilding(+el.dataset.id); document.querySelector('.guide').classList.remove('open'); });
+    guideList.innerHTML = `
+      <div class="guide-section">
+        ${BUILDINGS.map(b=>`
+          <div class="gitem" data-id="${b.id}">
+            <span class="n">${b.id}</span>
+            <span class="tx"><div class="cn">${b.cn}</div><div class="en">${b.en}</div></span>
+          </div>`).join('')}
+      </div>
+      <div class="guide-section">
+        <div class="guide-section-title">IB学生附加教室</div>
+        ${EXTRA_CLASSROOMS.map(extra=>`
+          <div class="gitem extra" data-extra="${extra.key}">
+            <span class="n">${extra.no}</span>
+            <span class="tx"><div class="cn">${extra.cn}</div><div class="en">${extra.where}</div></span>
+          </div>`).join('')}
+      </div>`;
+    guideList.querySelectorAll('.gitem[data-id]').forEach(el=> el.onclick = ()=>{
+      selectBuilding(+el.dataset.id);
+      document.querySelector('.guide').classList.remove('open');
+      if(guideToggle) guideToggle.textContent = '☰ 导览';
+    });
+    guideList.querySelectorAll('.gitem[data-extra]').forEach(el=> el.onclick = ()=>{
+      selectExtraClassroom(el.dataset.extra);
+      document.querySelector('.guide').classList.remove('open');
+      if(guideToggle) guideToggle.textContent = '☰ 导览';
+    });
     const guideToggle = document.getElementById('guideToggle');
-    if(guideToggle) guideToggle.onclick = ()=> document.querySelector('.guide').classList.toggle('open');
+    if(guideToggle) guideToggle.onclick = ()=>{
+      const isOpen = document.querySelector('.guide').classList.toggle('open');
+      guideToggle.textContent = isOpen ? '× 关闭' : '☰ 导览';
+    };
     function setActive(id){
-      guideList.querySelectorAll('.gitem').forEach(el=> el.classList.toggle('active', +el.dataset.id===id));
-      const act = guideList.querySelector('.gitem.active');
+      guideList.querySelectorAll('.gitem[data-id]').forEach(el=> el.classList.toggle('active', +el.dataset.id===id));
+      const act = guideList.querySelector('.gitem[data-id].active');
+      if(act) act.scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+    function setActiveExtra(key){
+      guideList.querySelectorAll('.gitem[data-extra]').forEach(el=> el.classList.toggle('active', el.dataset.extra===key));
+      const act = guideList.querySelector('.gitem[data-extra].active');
       if(act) act.scrollIntoView({block:'nearest', behavior:'smooth'});
     }
 
@@ -858,7 +1008,7 @@
       raycaster.setFromCamera(ndc, camera);
       const hits = raycaster.intersectObjects(pickMeshes, false);
       if(hits.length) selectBuilding(hits[0].object.userData.pick);
-      else if(selectedId!==null) deselect();
+      else if(selectedId!==null || selectedExtraKey!==null) deselect();
     });
 
     addEventListener('resize', ()=>{
@@ -881,14 +1031,15 @@
         renderer.domElement.style.cursor = hoveredId ? 'pointer' : 'grab';
       } else hoveredId = pinHoverId;
 
+      const activeExtra = selectedExtraKey ? getExtra(selectedExtraKey) : null;
       for(const g of Object.values(groups)){
-        const id=g.userData.id, active=id===selectedId, hover=id===hoveredId;
+        const id=g.userData.id, active=id===selectedId || (activeExtra && id===activeExtra.buildingId), hover=id===hoveredId;
         const tLift = active ? g.userData.liftA : hover ? g.userData.liftH : 0;
         const tEmis = active ? 0.32 : hover ? 0.18 : 0;
         g.position.y += (tLift - g.position.y)*0.15;
         g.userData.mats.forEach(m=> m.emissiveIntensity += (tEmis - (m.emissiveIntensity||0))*0.15);
         /* fade out non-focused buildings in isolate modes */
-        const vis = hiddenIds.has(id) ? 0 : 1;
+        const vis = hiddenIds.has(id) ? 0 : activeExtra ? (id===activeExtra.buildingId ? 1 : 0.18) : 1;
         g.userData.opacity += (vis - g.userData.opacity)*0.12;
         const op = g.userData.opacity;
         g.visible = op > 0.02;
