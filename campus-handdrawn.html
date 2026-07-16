@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>校园线稿 · Ulink IB</title>
+  <link rel="icon" href="./logo.png" />
+  <style>
+    @font-face{
+      font-family:'Yozai Campus Local';
+      src:url('./assets/fonts/yozai-campus.woff2') format('woff2');
+      font-display:swap;
+      font-style:normal;
+      font-weight:400;
+    }
+    @font-face{
+      font-family:'Patrick Hand Local';
+      src:url('./assets/fonts/patrick-hand-campus.woff2') format('woff2');
+      font-display:swap;
+      font-style:normal;
+      font-weight:400;
+    }
+    :root{
+      --blue:#17446a; --blue-mid:#4b708c; --blue-deep:#102f47; --coral:#d83a34;
+      --paper:#f8faf8; --vellum:rgba(248,250,248,.9); --text:#1c2b33; --sub:#68767c;
+      --line:rgba(23,68,106,.14); --shadow:rgba(16,47,71,.17); --green:#5c7864;
+    }
+    *,*::before,*::after{ margin:0; padding:0; box-sizing:border-box; }
+    html,body{ width:100%; height:100%; overflow:hidden;
+      font-family:'Manrope',sans-serif; color:var(--text); background:#dbe4e1; }
+    #app{ position:fixed; inset:0; touch-action:none; }
+    #app canvas{ display:block; touch-action:none; }
+
+    .labels{ position:absolute; inset:0; pointer-events:none; }
+    .pin{
+      width:28px; height:28px; border-radius:50%;
+      background:var(--paper); color:var(--blue-deep);
+      border:2px solid var(--blue);
+      font:800 11.5px/24px 'Manrope'; text-align:center;
+      box-shadow:0 6px 16px rgba(16,47,71,.2), 0 0 0 3px rgba(248,250,248,.82);
+      pointer-events:auto; cursor:pointer;
+      transform:translateY(0); transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .25s, box-shadow .25s;
+      will-change:transform;
+    }
+    .pin.flat{ width:24px; height:24px; line-height:20px; font-size:10px; background:#eef3ef; border-color:var(--green); }
+    .pin:hover,.pin.hover{ transform:scale(1.18) translateY(-2px); }
+    .pin.active{ background:var(--coral); color:#fff; transform:scale(1.34) translateY(-4px);
+      border-color:var(--coral); box-shadow:0 10px 24px rgba(176,43,38,.35), 0 0 0 4px rgba(248,250,248,.94); }
+    /* room labels for the floor-1 plans */
+    .room-lbl{ display:flex; flex-direction:column; align-items:center; line-height:1.05; padding:.28rem .5rem; border-radius:5px;
+      background:rgba(248,250,248,.88); backdrop-filter:blur(4px); border:1px solid var(--line);
+      box-shadow:0 3px 9px rgba(16,47,71,.11); color:var(--blue-deep);
+      font:700 .62rem 'Manrope'; letter-spacing:0; white-space:nowrap; pointer-events:none; }
+    .room-lbl small{ font-weight:500; font-size:.5rem; color:var(--sub); margin-top:1px; }
+    .room-lbl.room-exitlbl{ background:rgba(23,68,106,.92); color:#fff; border-color:rgba(255,255,255,.55); }
+    .floor-title{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:1.05rem; color:var(--blue-deep);
+      background:rgba(248,250,248,.92); backdrop-filter:blur(6px);
+      border:1px solid var(--line); box-shadow:0 7px 20px rgba(16,47,71,.13);
+      padding:.4rem .9rem; border-radius:5px; white-space:nowrap; pointer-events:none; }
+
+    .topbar{ position:fixed; top:0; left:0; right:0; z-index:20;
+      display:flex; align-items:flex-start; justify-content:space-between; padding:1.15rem 1.45rem;
+      background:linear-gradient(180deg, rgba(226,235,232,.92) 0%, rgba(226,235,232,0) 100%);
+      pointer-events:none; }
+    .brand{ display:flex; align-items:center; gap:.65rem; pointer-events:auto; }
+    .brand-mark{ width:32px; height:32px; object-fit:contain; filter:drop-shadow(0 3px 7px rgba(16,47,71,.12)); }
+    .brand-copy{ display:flex; flex-direction:column; gap:3px; }
+    .brand .u{ font-weight:800; font-size:1rem; letter-spacing:.22em; color:var(--blue-deep); line-height:1; }
+    .brand .cn{ font-size:.55rem; font-weight:600; letter-spacing:.1em; color:var(--blue); opacity:.72; }
+    .toptag{ margin-top:.2rem; font-size:.58rem; letter-spacing:.16em; text-transform:uppercase; color:var(--blue); opacity:.7; font-weight:700; pointer-events:auto; }
+
+    /* ── Top slide-bar (mode switch) ── */
+    .modebar{ position:fixed; top:1.05rem; left:50%; transform:translateX(-50%); z-index:21;
+      display:flex; gap:2px; padding:4px; border-radius:7px; isolation:isolate;
+      background:rgba(248,250,248,.9);
+      backdrop-filter:blur(14px) saturate(110%); -webkit-backdrop-filter:blur(14px) saturate(110%);
+      border:1px solid var(--line);
+      box-shadow:0 12px 32px var(--shadow), inset 0 1px 0 rgba(255,255,255,.75);
+      opacity:0; animation:slideDown .8s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    .modebar .mode{ position:relative; z-index:1; border:none; background:transparent; cursor:pointer;
+      padding:.56rem 1.1rem; border-radius:4px; font:700 .7rem 'Manrope'; letter-spacing:0;
+      color:var(--blue-deep); white-space:nowrap; transition:color .3s; }
+    .modebar .mode.active{ color:#fff; }
+    .mode-ind{ position:absolute; top:4px; bottom:4px; left:4px; width:80px; z-index:0; border-radius:4px;
+      background:var(--coral);
+      box-shadow:0 5px 15px rgba(176,43,38,.25), inset 0 1px 0 rgba(255,255,255,.2);
+      transition:left .45s cubic-bezier(.34,1.4,.5,1), width .45s cubic-bezier(.34,1.4,.5,1); }
+    @keyframes slideDown{ from{opacity:0; transform:translateX(-50%) translateY(-14px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
+
+    /* ── Map index sidebar ── */
+    .glass-defs{ position:absolute; width:0; height:0; pointer-events:none; }
+    .guide{ position:fixed; top:50%; left:1.25rem; transform:translateY(-50%); z-index:18; width:260px; max-height:79vh;
+      border-radius:6px; isolation:isolate;
+      background:var(--vellum);
+      backdrop-filter:blur(16px) saturate(108%);
+      -webkit-backdrop-filter:blur(16px) saturate(108%);
+      border:1px solid var(--line);
+      box-shadow:0 20px 50px rgba(16,47,71,.17), 0 1px 0 rgba(255,255,255,.75) inset;
+      display:flex; flex-direction:column; overflow:hidden;
+      opacity:0; animation:slideL .8s cubic-bezier(.16,1,.3,1) .3s forwards; }
+    .guide::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; z-index:2; pointer-events:none;
+      background:linear-gradient(90deg,var(--coral) 0 28%,var(--blue) 28% 100%); }
+    .guide::after{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
+      background:linear-gradient(145deg, rgba(255,255,255,.38), transparent 38%); }
+    .guide-h, .guide-list{ position:relative; z-index:1; }
+    .guide-h{ padding:1.25rem 1.2rem .9rem; border-bottom:1px solid var(--line); box-shadow:none; }
+    .guide-h .t{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:1.25rem; color:var(--blue-deep); line-height:1.1; }
+    .guide-h .s{ font-size:.57rem; letter-spacing:.09em; color:var(--sub); margin-top:5px; text-transform:uppercase; }
+    .guide-list{ overflow-y:auto; padding:.55rem; scrollbar-width:thin; scrollbar-color:rgba(23,68,106,.24) transparent; }
+    .guide-list::-webkit-scrollbar{ width:6px; }
+    .guide-list::-webkit-scrollbar-thumb{ background:rgba(23,68,106,.22); border-radius:3px; }
+    .guide-section{ padding:.15rem 0 .35rem; }
+    .guide-section + .guide-section{ border-top:1px solid var(--line); margin-top:.35rem; padding-top:.7rem; }
+    .guide-section-title{ padding:.35rem .65rem .5rem; font-size:.57rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); opacity:.78; }
+    .gitem{ display:flex; align-items:center; gap:.72rem; padding:.5rem .62rem; border-radius:4px; cursor:pointer;
+      transition:background .25s, box-shadow .25s, transform .25s; pointer-events:auto; }
+    .gitem:hover{ background:rgba(225,235,239,.66); transform:translateX(2px); }
+    .gitem.active{ background:rgba(220,232,238,.9);
+      box-shadow:inset 3px 0 0 var(--coral); }
+    .gitem .n{ flex:none; width:23px; height:23px; border-radius:50%; background:#edf2f2; color:var(--blue-deep); border:1px solid var(--line); font:800 10px/21px 'Manrope'; text-align:center; }
+    .gitem.active .n{ background:var(--coral); color:#fff; border-color:transparent; }
+    .gitem .tx{ min-width:0; }
+    .gitem .cn{ font-size:.73rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gitem .en{ font-size:.56rem; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gitem.extra .n{ color:#fff; background:var(--blue); border-color:transparent; }
+    .gitem.extra.active{ background:rgba(220,232,238,.94); }
+    .extra-tag{ display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none; transform:translateY(-4px); }
+    .extra-tag .dot{ width:18px; height:18px; border-radius:50%; background:var(--coral); border:3px solid var(--paper);
+      box-shadow:0 8px 18px rgba(176,43,38,.3), 0 0 0 1px var(--line); }
+    .extra-tag .label{ padding:.28rem .56rem; border-radius:4px; background:rgba(248,250,248,.94); border:1px solid var(--line);
+      box-shadow:0 7px 18px rgba(16,47,71,.14); color:var(--blue-deep); font:700 .58rem 'Manrope'; white-space:nowrap; }
+
+    .card{ position:fixed; top:50%; right:1.25rem; transform:translate(120%,-50%); z-index:19; width:326px; max-height:80vh;
+      border-radius:6px; isolation:isolate;
+      background:rgba(248,250,248,.94);
+      backdrop-filter:blur(16px) saturate(108%);
+      -webkit-backdrop-filter:blur(16px) saturate(108%);
+      border:1px solid var(--line); border-top:3px solid var(--coral);
+      box-shadow:0 22px 58px rgba(16,47,71,.2), 0 1px 0 rgba(255,255,255,.75) inset;
+      padding:1.6rem 1.6rem 1.5rem; overflow-y:auto;
+      transition:transform .6s cubic-bezier(.16,1,.3,1), opacity .5s; opacity:0; }
+    .card::before{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
+      background:linear-gradient(150deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 34%); }
+    .card > *{ position:relative; z-index:1; }
+    .card.show{ transform:translate(0,-50%); opacity:1; }
+    .card-close{ position:absolute; top:1rem; right:1rem; z-index:2; width:30px; height:30px; border-radius:4px; border:1px solid var(--line); background:#f4f7f6; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:1rem; transition:background .2s,color .2s; }
+    .card-close:hover{ background:var(--blue-deep); color:#fff; border-color:var(--blue-deep); }
+    .card-num{ width:38px; height:38px; border-radius:4px; background:var(--coral); color:#fff; font:800 15px/38px 'Manrope'; text-align:center; box-shadow:0 7px 16px rgba(176,43,38,.24); margin-bottom:1rem; }
+    .card-en{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:1.45rem; line-height:1.18; color:var(--blue-deep); letter-spacing:0; }
+    .card-cn{ font-size:.86rem; font-weight:700; color:var(--text); margin-top:.35rem; }
+    .card-div{ height:1px; background:var(--line); margin:1.15rem 0 1rem; }
+    .card-lbl{ font-size:.58rem; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:800; opacity:.78; margin-bottom:.7rem; }
+    .fac{ display:flex; align-items:baseline; gap:.6rem; padding:.52rem 0; border-bottom:1px solid var(--line); }
+    .fac:last-child{ border-bottom:0; }
+    .fac .dot{ flex:none; width:5px; height:5px; border-radius:50%; background:var(--coral); transform:translateY(-2px); }
+    .fac .fcn{ font-size:.8rem; font-weight:700; color:var(--text); }
+    .fac .fen{ font-size:.66rem; color:var(--sub); margin-left:auto; text-align:right; }
+
+    .hint{ position:fixed; bottom:1.25rem; left:50%; transform:translateX(-50%); z-index:18; display:flex; gap:1.2rem; align-items:center; padding:.62rem 1.15rem; border-radius:6px;
+      background:rgba(248,250,248,.88);
+      backdrop-filter:blur(14px) saturate(108%); -webkit-backdrop-filter:blur(14px) saturate(108%);
+      border:1px solid var(--line);
+      box-shadow:0 10px 28px rgba(16,47,71,.13);
+      font-size:.68rem; color:var(--sub); letter-spacing:.02em; opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .5s forwards; }
+    .hint b{ color:var(--blue); font-weight:600; }
+    .hint .sep{ width:1px; height:12px; background:var(--line); }
+
+    .reset{ position:fixed; bottom:1.25rem; right:1.25rem; z-index:18; display:flex; align-items:center; gap:.5rem; padding:.7rem 1rem; border:1px solid rgba(255,255,255,.2); border-radius:6px; cursor:pointer; background:var(--blue-deep); color:#fff; font-size:.72rem; font-weight:700; letter-spacing:.02em; box-shadow:0 8px 22px rgba(16,47,71,.25); opacity:0; animation:slideU .8s cubic-bezier(.16,1,.3,1) .6s forwards; transition:transform .3s, box-shadow .3s, background .2s; }
+    .reset:hover{ transform:translateY(-2px); background:var(--blue); box-shadow:0 12px 30px rgba(16,47,71,.3); }
+    .reset-icon{ font-size:1rem; line-height:1; }
+
+    .compass{ position:fixed; top:5rem; right:1.45rem; z-index:18; width:52px; height:52px; border-radius:50%;
+      background:rgba(248,250,248,.9);
+      backdrop-filter:blur(10px) saturate(110%); -webkit-backdrop-filter:blur(10px) saturate(110%);
+      border:1px solid var(--line);
+      box-shadow:0 8px 22px rgba(16,47,71,.14);
+      display:flex; align-items:center; justify-content:center; opacity:0; animation:slideL .8s cubic-bezier(.16,1,.3,1) .55s forwards; }
+    .compass .needle{ position:relative; width:100%; height:100%; }
+    .compass .n,.compass .s{ position:absolute; left:50%; top:50%; width:0; height:0; }
+    .compass .n{ border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:18px solid var(--coral); transform:translate(-50%,-100%); }
+    .compass .s{ border-left:5px solid transparent; border-right:5px solid transparent; border-top:18px solid #9eabb0; transform:translate(-50%,0); }
+    .compass .lbl{ position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:.5rem; font-weight:800; color:var(--blue-deep); }
+
+    .loader{ position:fixed; inset:0; z-index:50; background:#e1e9e6; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem; transition:opacity .7s; }
+    .loader.hide{ opacity:0; pointer-events:none; }
+    .loader .ld-t{ font-family:'Noto Serif SC',serif; font-weight:700; font-size:2.2rem; color:var(--blue-deep); }
+    .ld-bar{ width:160px; height:3px; border-radius:3px; background:rgba(23,68,106,.16); overflow:hidden; }
+    .ld-bar i{ display:block; width:40%; height:100%; background:var(--coral); border-radius:3px; animation:ldmove 1s ease-in-out infinite; }
+    @keyframes ldmove{ 0%{transform:translateX(-100%);} 100%{transform:translateX(350%);} }
+
+    @keyframes slideL{ from{opacity:0; transform:translateY(-50%) translateX(-18px);} to{opacity:1; transform:translateY(-50%) translateX(0);} }
+    @keyframes slideU{ from{opacity:0; transform:translateX(-50%) translateY(16px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
+
+    /* mobile guide trigger (hidden on desktop) */
+    .guide-toggle{ display:none; position:fixed; bottom:1.25rem; left:1.1rem; z-index:32;
+      align-items:center; gap:.45rem; padding:.7rem 1rem; border:1px solid rgba(255,255,255,.2); border-radius:6px; cursor:pointer;
+      background:var(--blue-deep); color:#fff;
+      font:700 .76rem 'Manrope'; letter-spacing:0; box-shadow:0 8px 22px rgba(16,47,71,.25); }
+
+    @media (max-width:820px){
+      .toptag{ display:none; }
+      .topbar{ padding:.9rem 1.05rem; }
+      .brand{ gap:.45rem; }
+      .brand-mark{ width:27px; height:27px; }
+      .brand .u{ font-size:.82rem; letter-spacing:.14em; }
+      .brand .cn{ display:none; }
+      .modebar{ top:.85rem; gap:1px; padding:4px; }
+      .modebar .mode{ padding:.5rem .85rem; font-size:.68rem; }
+      .compass{ width:46px; height:46px; top:4.6rem; right:1.1rem; }
+      /* Campus Guide → bottom sheet */
+      .guide{ top:auto; bottom:0; left:0; right:0; width:auto; max-height:64vh;
+        border-radius:6px 6px 0 0; transform:translateY(112%); opacity:1;
+        animation:none; transition:transform .45s cubic-bezier(.16,1,.3,1); z-index:33; }
+      .guide.open{ transform:translateY(0); }
+      .guide.open ~ .reset{ opacity:0 !important; pointer-events:none; }
+      .guide.open ~ .guide-toggle{ bottom:calc(64vh - 1.1rem); background:var(--coral); z-index:34; }
+      .guide-toggle{ display:inline-flex; transition:bottom .45s cubic-bezier(.16,1,.3,1), opacity .2s; }
+      .card{ width:auto; left:.8rem; right:.8rem; top:auto; bottom:5.7rem; transform:translateY(150%); max-height:48vh; z-index:34; }
+      .card.show{ transform:translateY(0); }
+      .hint{ display:none; }
+      .reset{ bottom:1.25rem; right:1.1rem; padding:.66rem .95rem; font-size:.72rem; }
+    }
+
+    /* ── Hand-drawn campus skin ───────────────────────────────────── */
+    :root{
+      --ink:#171713; --ink-soft:#56544d; --paper:#f6f2e8; --paper-strong:#fffdf6;
+      --accent:#f2cc53; --accent-soft:rgba(242,204,83,.52); --red-pencil:#cf756b;
+      --line:rgba(23,23,19,.24); --shadow:rgba(23,23,19,.16); --blue:var(--ink);
+      --blue-mid:var(--ink-soft); --blue-deep:var(--ink); --coral:var(--accent);
+      --vellum:rgba(255,253,246,.96); --text:var(--ink); --sub:#747168; --green:var(--ink);
+    }
+    html,body{
+      font-family:'Yozai Campus Local','Kaiti SC','STKaiti','KaiTi',serif;
+      background:var(--paper);
+    }
+    button{ font-family:inherit; }
+    .paper-noise{
+      position:fixed; inset:0; z-index:3; pointer-events:none; opacity:.17;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      mix-blend-mode:normal;
+    }
+    .labels{ z-index:4; }
+
+    .pin{
+      position:relative; min-width:29px; width:auto; height:29px; padding:0 7px;
+      border:2px solid var(--ink); border-radius:8px 6px 7px 5px; background:var(--paper-strong); color:var(--ink);
+      box-shadow:2px 2px 0 rgba(23,23,19,.16);
+      font:400 15px/25px 'Patrick Hand Local',cursive; letter-spacing:0;
+      transform:rotate(-1.5deg); transition:transform .14s,background .16s,box-shadow .16s,border-color .16s;
+    }
+    .pin::after{
+      content:''; position:absolute; left:50%; bottom:-6px; width:7px; height:7px;
+      border-right:2px solid var(--ink); border-bottom:2px solid var(--ink);
+      background:inherit; transform:translateX(-50%) rotate(45deg);
+    }
+    .pin.flat{ min-width:27px; width:auto; height:27px; line-height:23px; font-size:14px; background:var(--paper-strong); border-color:var(--ink); }
+    .pin:hover,.pin.hover{ transform:rotate(1deg) scale(1.12) translateY(-2px); }
+    .pin.active{ background:var(--accent); color:var(--ink); border-color:var(--ink);
+      transform:rotate(-2deg) scale(1.16) translateY(-3px); box-shadow:4px 4px 0 rgba(23,23,19,.17); }
+    .pin.important{
+      border-color:#c49220;
+      box-shadow:0 0 0 3px rgba(242,204,83,.34),2px 2px 0 rgba(23,23,19,.16);
+    }
+    .pin.important::after{ border-color:#c49220; }
+    .pin.important.active{
+      border-color:#9c7213;
+      box-shadow:0 0 0 3px rgba(242,204,83,.4),4px 4px 0 rgba(23,23,19,.17);
+    }
+
+    .room-lbl,.floor-title{
+      border:1.5px solid var(--ink); border-radius:7px 5px 6px 4px; background:var(--paper-strong); color:var(--ink);
+      box-shadow:2px 2px 0 rgba(23,23,19,.12); backdrop-filter:none; -webkit-backdrop-filter:none;
+      font-family:'Yozai Campus Local','Kaiti SC',serif; letter-spacing:0;
+    }
+    .room-lbl small{ color:var(--ink-soft); font-family:'Patrick Hand Local','Yozai Campus Local',cursive; }
+    .room-lbl.room-exitlbl{ background:var(--ink); color:var(--paper-strong); border-color:var(--ink); }
+    .floor-title{ font-size:1.12rem; font-weight:400; }
+
+    .topbar{
+      padding:1.05rem 1.25rem; background:none;
+    }
+    .brand-mark{ width:29px; height:29px; filter:grayscale(1) contrast(1.35); }
+    .brand .u{ color:var(--ink); font:400 1.22rem/1 'Patrick Hand Local',cursive; letter-spacing:.09em; }
+    .brand .cn{ color:var(--ink-soft); opacity:1; font-size:.65rem; font-weight:400; letter-spacing:0; }
+    .toptag{ color:var(--ink-soft); opacity:1; font:400 .72rem/1 'Patrick Hand Local',cursive; letter-spacing:.08em; }
+
+    .modebar{
+      top:1rem; gap:0; padding:3px; border:2px solid var(--ink); border-radius:18px 16px 17px 15px;
+      background:var(--paper-strong); backdrop-filter:none; -webkit-backdrop-filter:none;
+      box-shadow:4px 4px 0 rgba(23,23,19,.14); transform:translateX(-50%) rotate(-.4deg);
+    }
+    .modebar .mode{
+      padding:.52rem 1.08rem; border-radius:14px 12px 13px 11px; color:var(--ink); font-size:.78rem; font-weight:400;
+    }
+    .modebar .mode.active{ color:var(--ink); }
+    .mode-ind{
+      top:3px; bottom:3px; left:3px; border-radius:14px 12px 13px 11px; background:var(--accent);
+      box-shadow:none; transition:left .35s cubic-bezier(.2,.8,.2,1),width .35s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .guide{
+      left:1.15rem; width:292px; max-height:82vh; border:2px solid var(--ink); border-radius:8px 6px 8px 5px;
+      overflow:visible; background:var(--paper-strong); backdrop-filter:none; -webkit-backdrop-filter:none;
+      box-shadow:7px 7px 0 rgba(23,23,19,.14); transform:translateY(-50%) rotate(-.25deg);
+    }
+    .guide::before{
+      top:0; bottom:0; left:35px; right:auto; width:1px; height:auto; z-index:3;
+      background:var(--red-pencil); opacity:.55;
+    }
+    .guide::after{
+      inset:-5px 3px 4px -4px; z-index:-1; border:1px solid rgba(23,23,19,.6); border-radius:7px 5px 8px 6px;
+      background:none; transform:rotate(.55deg);
+    }
+    .guide-h,.guide-list{ background:var(--paper-strong); }
+    .guide-h{
+      padding:1.15rem 1rem .85rem 3.1rem; border-bottom:1.5px solid var(--ink); box-shadow:none;
+    }
+    .guide-h::after{
+      content:''; position:absolute; left:3rem; right:1.1rem; bottom:.72rem; height:3px;
+      background:var(--accent); opacity:.72; transform:rotate(-1deg); z-index:-1;
+    }
+    .guide-h .t{ color:var(--ink); font:400 1.65rem/1 'Yozai Campus Local','Kaiti SC',serif; }
+    .guide-h .s{ margin-top:8px; color:var(--ink-soft); font:400 .72rem/1 'Patrick Hand Local','Yozai Campus Local',cursive; letter-spacing:.04em; text-transform:none; }
+    .guide-list{
+      max-height:calc(82vh - 83px); padding:.55rem .55rem .65rem 2.45rem;
+      overflow-y:auto; scrollbar-color:var(--ink) transparent;
+    }
+    .guide-list::-webkit-scrollbar{ width:5px; }
+    .guide-list::-webkit-scrollbar-thumb{ background:var(--ink); border-radius:4px; }
+    .guide-section{ padding:.05rem 0 .25rem; }
+    .guide-section + .guide-section{ margin-top:.55rem; padding-top:.8rem; border-top:1.5px dashed rgba(23,23,19,.48); }
+    .guide-section-title{
+      display:inline-block; margin:0 0 .4rem .45rem; padding:.18rem .4rem;
+      color:var(--ink); background:var(--accent-soft); opacity:1;
+      font-size:.75rem; font-weight:400; letter-spacing:0; text-transform:none; transform:rotate(-.8deg);
+    }
+    .gitem{
+      gap:.72rem; min-height:42px; margin:1px 0; padding:.38rem .55rem .38rem .48rem;
+      border-radius:7px 4px 6px 5px; border-bottom:1px solid rgba(23,23,19,.11);
+      transition:transform .18s,background .18s;
+    }
+    .gitem:hover{ background:rgba(242,204,83,.22); transform:translateX(2px) rotate(-.15deg); }
+    .gitem.active{ background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--ink); transform:rotate(-.25deg); }
+    .gitem .n{
+      width:27px; height:25px; border:1.5px solid var(--ink); border-radius:48% 52% 45% 55%;
+      background:var(--paper-strong); color:var(--ink); font:400 14px/22px 'Patrick Hand Local',cursive;
+      transform:rotate(-2deg);
+    }
+    .gitem:nth-child(2n) .n{ transform:rotate(2deg); }
+    .gitem.active .n,.gitem.extra .n{ background:var(--ink); color:var(--paper-strong); border-color:var(--ink); }
+    .gitem.extra.active{ background:var(--accent-soft); }
+    .gitem .cn{ color:var(--ink); font-size:.8rem; font-weight:400; }
+    .gitem .en{ color:var(--ink-soft); font:400 .72rem/1.1 'Patrick Hand Local','Yozai Campus Local',cursive; letter-spacing:0; }
+
+    .extra-tag .dot{
+      width:17px; height:17px; background:var(--accent); border:2px solid var(--ink);
+      box-shadow:2px 2px 0 rgba(23,23,19,.15);
+    }
+    .extra-tag .label{
+      padding:.28rem .58rem; border:1.5px solid var(--ink); border-radius:7px 5px 6px 4px;
+      background:var(--paper-strong); color:var(--ink); box-shadow:2px 2px 0 rgba(23,23,19,.13);
+      font:400 .72rem/1 'Yozai Campus Local','Kaiti SC',serif;
+    }
+
+    .card{
+      right:1.25rem; width:318px; padding:1.45rem 1.45rem 1.3rem;
+      border:2px solid var(--ink); border-top:2px solid var(--ink); border-radius:8px 6px 8px 5px;
+      background:var(--paper-strong); backdrop-filter:none; -webkit-backdrop-filter:none;
+      box-shadow:7px 7px 0 rgba(23,23,19,.14); transform:translate(120%,-50%) rotate(.4deg);
+    }
+    .card::before{
+      inset:-5px 4px 4px -4px; z-index:-1; border:1px solid rgba(23,23,19,.55); border-radius:7px 5px 8px 6px;
+      background:none; transform:rotate(-.7deg);
+    }
+    .card.show{ transform:translate(0,-50%) rotate(.4deg); }
+    .card-close{
+      width:31px; height:31px; top:.85rem; right:.85rem; border:1.5px solid var(--ink); border-radius:50%;
+      background:var(--paper-strong); color:var(--ink); font:400 1.35rem/25px 'Patrick Hand Local',cursive;
+    }
+    .card-close:hover{ background:var(--accent); color:var(--ink); border-color:var(--ink); }
+    .card-num{
+      width:40px; height:38px; border:2px solid var(--ink); border-radius:48% 52% 45% 55%;
+      background:var(--accent); color:var(--ink); box-shadow:2px 2px 0 rgba(23,23,19,.14);
+      font:400 21px/34px 'Patrick Hand Local',cursive; transform:rotate(-2deg);
+    }
+    .card-en{ color:var(--ink); font:400 1.55rem/1.05 'Patrick Hand Local',cursive; letter-spacing:0; }
+    .card-cn{ color:var(--ink); font-size:.94rem; font-weight:400; }
+    .card-div{ background:var(--ink); height:1.5px; transform:rotate(-.5deg); }
+    .card-lbl{ color:var(--ink-soft); opacity:1; font:400 .78rem/1 'Patrick Hand Local','Yozai Campus Local',cursive; letter-spacing:.05em; text-transform:none; }
+    .fac{ gap:.55rem; padding:.48rem 0; border-bottom:1px dashed rgba(23,23,19,.25); }
+    .fac .dot{ width:7px; height:7px; border:1.5px solid var(--ink); background:var(--accent); }
+    .fac .fcn{ color:var(--ink); font-size:.82rem; font-weight:400; }
+    .fac .fen{ color:var(--ink-soft); font:400 .72rem/1 'Patrick Hand Local',cursive; }
+
+    .hint{
+      gap:1rem; padding:.52rem .9rem; border:1.5px solid var(--ink); border-radius:8px 6px 7px 5px;
+      background:var(--paper-strong); backdrop-filter:none; -webkit-backdrop-filter:none;
+      box-shadow:3px 3px 0 rgba(23,23,19,.12); color:var(--ink-soft); font-size:.72rem;
+      transform:translateX(-50%) rotate(-.35deg);
+    }
+    .hint b{ color:var(--ink); font-weight:400; }
+    .hint .sep{ background:var(--ink); opacity:.3; }
+    .reset,.guide-toggle{
+      border:2px solid var(--ink); border-radius:13px 11px 12px 10px; background:var(--paper-strong); color:var(--ink);
+      box-shadow:4px 4px 0 rgba(23,23,19,.16); font-weight:400;
+    }
+    .reset:hover{ background:var(--accent); transform:translate(-1px,-1px) rotate(-1deg); box-shadow:6px 6px 0 rgba(23,23,19,.14); }
+    .reset-icon{ font-family:sans-serif; }
+    .compass{
+      width:54px; height:54px; border:2px solid var(--ink); border-radius:50%; background:var(--paper-strong);
+      backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:3px 3px 0 rgba(23,23,19,.13);
+    }
+    .compass .n{ border-bottom-color:var(--ink); }
+    .compass .s{ border-top-color:#aaa69b; }
+    .compass .axis{ position:absolute; inset:0; transform:rotate(90deg); }
+    .compass .dir{
+      position:absolute; color:var(--ink); font:400 .56rem/1 'Patrick Hand Local',cursive;
+      pointer-events:none;
+    }
+    .compass .dir-e{ top:4px; left:50%; transform:translateX(-50%); }
+    .compass .dir-s{ top:50%; left:5px; transform:translateY(-50%); }
+    .compass .dir-w{ bottom:4px; left:50%; transform:translateX(-50%); }
+    .compass .dir-n{ top:50%; right:5px; transform:translateY(-50%); }
+
+    .loader{ background:var(--paper); }
+    .loader .ld-t{ color:var(--ink); font:400 2.2rem/1 'Patrick Hand Local','Yozai Campus Local',cursive; }
+    .ld-bar{ height:4px; border:1px solid var(--ink); border-radius:4px; background:var(--paper-strong); }
+    .ld-bar i{ background:var(--accent); border-radius:3px; }
+
+    @media (max-width:820px){
+      .modebar{ top:.78rem; }
+      .modebar .mode{ padding:.48rem .76rem; font-size:.72rem; }
+      .guide{
+        left:0; right:0; bottom:0; max-height:68vh; width:auto; border-left:0; border-right:0; border-bottom:0;
+        display:none; border-radius:8px 8px 0 0; transform:none; transition:none;
+        box-shadow:0 -5px 0 rgba(23,23,19,.12);
+      }
+      .guide.open{ display:flex; transform:none; }
+      .guide::after{ display:none; }
+      .guide-list{ max-height:calc(68vh - 83px); }
+      .guide.open ~ .guide-toggle{ bottom:calc(68vh - 1.05rem); background:var(--accent); color:var(--ink); }
+      .guide-toggle{ padding:.64rem .82rem; transition:none; }
+      .card{ left:.75rem; right:.75rem; bottom:5.4rem; width:auto; transform:translateY(150%) rotate(.3deg); }
+      .card.show{ transform:translateY(0) rotate(.3deg); }
+      .reset{ padding:.65rem .82rem; }
+      .room-lbl{ padding:.18rem .3rem; font-size:.48rem; }
+      .room-lbl small{ font-size:.39rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid-glass refraction filter (displaces the backdrop behind glass panels) -->
+  <svg class="glass-defs" aria-hidden="true" width="0" height="0">
+    <defs>
+      <filter id="liquid-glass" x="-35%" y="-35%" width="170%" height="170%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="12" result="noise"/>
+        <feGaussianBlur in="noise" stdDeviation="1.4" result="softNoise"/>
+        <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="28" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div id="app"></div>
+  <div class="paper-noise" aria-hidden="true"></div>
+
+  <div class="loader" id="loader">
+    <div class="ld-t">校园线稿</div>
+    <div class="ld-bar"><i></i></div>
+    <div style="font:400 .78rem 'Patrick Hand Local',cursive;letter-spacing:.08em;color:var(--sub)">Drawing the campus...</div>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="./logo.png" alt="" />
+      <span class="brand-copy">
+        <span class="u">ULINK</span>
+        <span class="cn">领科教育 · 校园线稿导览</span>
+      </span>
+    </div>
+    <span class="toptag">Hand-drawn Campus Map</span>
+  </div>
+
+  <div class="modebar" id="modebar">
+    <span class="mode-ind" id="modeInd"></span>
+    <button class="mode active" data-mode="campus">校园全景</button>
+    <button class="mode" data-mode="floor">IB 学部</button>
+  </div>
+
+  <div class="compass"><div class="needle" id="needle">
+    <span class="dir dir-e">E</span><span class="dir dir-s">S</span>
+    <span class="dir dir-w">W</span><span class="dir dir-n">N</span>
+    <span class="axis"><span class="n"></span><span class="s"></span></span>
+  </div></div>
+
+  <aside class="guide">
+    <div class="guide-h">
+      <div class="t">校园速写目录</div>
+      <div class="s">Campus notebook · 点击地点探索</div>
+    </div>
+    <div class="guide-list" id="guideList"></div>
+  </aside>
+
+  <div class="card" id="card">
+    <button class="card-close" id="cardClose">&times;</button>
+    <div class="card-num" id="cardNum">1</div>
+    <div class="card-en" id="cardEn"></div>
+    <div class="card-cn" id="cardCn"></div>
+    <div class="card-div"></div>
+    <div class="card-lbl">Facilities · 设施</div>
+    <div id="cardFac"></div>
+  </div>
+
+  <div class="hint">
+    <span><b>拖拽</b> 旋转</span><span class="sep"></span>
+    <span><b>滚轮</b> 缩放</span><span class="sep"></span>
+    <span><b>点击</b> 查看建筑</span>
+  </div>
+
+  <button class="reset" id="resetBtn"><span class="reset-icon" aria-hidden="true">↻</span><span>重置视角</span></button>
+  <button class="guide-toggle" id="guideToggle">☰ 导览</button>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    /* ───────── DATA — real satellite layout (north up, west=left, entrance=south) ───────── */
+    const INK = 0x171713;
+    const PAPER = 0xF6F2E8;
+    const PAPER_STRONG = 0xFFFDF6;
+    const ACCENT = 0xF2CC53;
+    const EAST_WEST_SCALE = 1.18;
+    const EAST_WEST_BREAK = -7;
+    const EAST_WEST_GAP = 2.2;
+    function campusZ(z){
+      const scaled=z*EAST_WEST_SCALE;
+      if(z<EAST_WEST_BREAK) return scaled-EAST_WEST_GAP;
+      if(z>EAST_WEST_BREAK) return scaled+EAST_WEST_GAP;
+      return scaled;
+    }
+    const BLUE = INK;
+    const CORAL = ACCENT;
+    const MAIN_IDS = new Set([1,12,16]);
+    const STONE = {
+      mainFront:PAPER_STRONG, mainTop:PAPER_STRONG,
+      secFront:PAPER_STRONG, secTop:PAPER_STRONG,
+      trim:PAPER_STRONG, glass:PAPER_STRONG
+    };
+    const BUILDINGS = [
+      // ── North ──
+      {id:1, cn:'宿舍楼', en:'Dormitory', pos:[-6,-37], size:[28,7], h:11, wall:0xD9CDB7, dorm:true,
+        fac:[['1号宿舍','Dorm 1'],['2号宿舍','Dorm 2'],['3号宿舍','Dorm 3']]},
+      {id:2, cn:'网球场', en:'Tennis Courts', pos:[34,-36], size:[12,9], h:0.5, flat:true, court:0x5F856C, pinY:6,
+        fac:[['室外网球场','Outdoor Tennis Courts']]},
+      {id:3, cn:'田径运动场', en:'Athletics Field', pos:[0,-22], size:[26,13], h:0.5, flat:true, court:0xB86D62, pinY:7,
+        fac:[['标准跑道','Running Track'],['足球场','Soccer Pitch']]},
+      // ── Mid band ──
+      {id:4, cn:'智慧餐厅', en:'Smart Canteen', pos:[-32,-12], size:[7,6], h:4.6, wall:0xD8C7A8,
+        fac:[['机器人烧的饭','Robot-cooked meals']]},
+      {id:5, cn:'中餐厅', en:'Chinese Canteen', pos:[-33,-4], size:[8,10], h:4.6, wall:0xD8C7A8, roof:0xB7BEA2,
+        fac:[['各种美食','All kinds of food']]},
+      {id:6, cn:'便利店', en:'Convenience Store', pos:[-6,-13], size:[6,4], h:5, wall:0xD8C7A8,
+        fac:[['便利店','Convenience Store']]},
+      {id:7, cn:'风雨篮球场', en:'Covered Basketball Court', pos:[1.75,-7], size:[32.5,17], h:6, open:true, halfRoof:true,
+        fac:[['室内篮球场（有顶）','Covered Basketball Court'],['室外篮球场（无顶）','Open Basketball Court']]},
+      {id:8, cn:'行政服务中心', en:'Administration Center', pos:[9,-14], size:[9,5], h:8, wall:0xD8C7A8,
+        fac:[['医务室','Medic Room'],['体育器材室','PE Storage'],['职能部门办公室','Admin Offices']]},
+      {id:9, cn:'体育馆', en:'Gymnasium', pos:[34,-7], size:[12,9], h:12, wall:0xD5C1A5,
+        fac:[['室内篮球馆','Basketball Hall'],['音乐教室','Music Room']]},
+      {id:10, cn:'健身房', en:'Fitness Center', pos:[43,-7], size:[5,7], h:8, wall:0xD5C1A5,
+        fac:[['健身房','Fitness Room']]},
+      // ── Center ──
+      {id:12, cn:'综合楼', en:'Multi-function Building', pos:[2,5], size:[32,11], h:15, wall:0xE8DFCD, landmark:true,
+        fac:[['图书馆','Library'],['化学实验室','Chemistry Lab'],['咖啡吧','Cafe'],['教师办公室',"Teachers' Office"]]},
+      {id:13, cn:'艺术楼', en:'Art Building', pos:[32,19], size:[9,9], h:11, wall:0xD5C1A5,
+        fac:[['阶梯教室','Auditorium'],['网络教室','Web Conf. Room'],['艺术教室','Art Classroom'],['黑箱剧场','Blackbox Theater']]},
+      // ── Lower-mid ──
+      {id:14, cn:'剑桥楼', en:'Cambridge Building', pos:[-31,21.5], size:[7,27], h:12, wall:0xD8C7A8,
+        fac:[['各种教室','Various classrooms']]},
+      {id:15, cn:'初中部', en:'Middle School', pos:[34,5], size:[8,12], h:13, wall:0xD8C7A8,
+        fac:[['六–九年级教室','Grade 6–9 Classrooms'],['初中校长室','Principal Office'],['年级组办公室','Grade Office']]},
+      // ── South ──
+      {id:16, cn:'IB 教室（创意港）', en:'IB Classroom · Innovation Bay', pos:[-42,28], size:[3,14], h:4.6, wall:0xE8DFCD,
+        fac:[['IB 教学区','IB Classroom']]},
+      {id:17, cn:'SABIS 楼', en:'SABIS Building', pos:[32,29], size:[7,11], h:11, wall:0xD8C7A8,
+        fac:[['SABIS 教学区','SABIS Classroom']]},
+      {id:18, cn:'1# 实验室', en:'Science Center 1#', pos:[45.5,28], size:[4,8], h:4.6, wall:0xD5C1A5,
+        fac:[['计算机实验室','Computer Lab'],['生物实验室','Biology Lab'],['教师办公室',"Teachers' Office"]]},
+      {id:19, cn:'2# 实验室', en:'Science Center 2#', pos:[30.75,40], size:[33.5,6], h:9, wall:0xD5C1A5,
+        fac:[['物理实验室','Physics Lab'],['考试中心','Exam Center']]},
+      // ── Lockers (small) ──
+      {id:20, cn:'外卖柜', en:'Takeout Lockers', pos:[-36.5,-11.5], size:[1.5,3], h:2.5, wall:0xCBA756, locker:true, pinY:5,
+        fac:[['外卖暂存柜','Takeout Pickup Lockers']]},
+      {id:21, cn:'快递柜', en:'Parcel Lockers', pos:[-14,39], size:[2,3], h:2.5, wall:0x84946F, locker:true, pinY:5,
+        fac:[['快递收发柜','Parcel Pickup Lockers']]},
+      {id:22, cn:'厕所', en:'Restroom', pos:[51.5,37.2], size:[3,3], h:3.2, wall:0xD8C7A8, locker:true, pinY:5.2,
+        fac:[['厕所','Restroom']]},
+    ];
+    const EXTRA_CLASSROOMS = [
+      {key:'art', no:'A', cn:'美术教室', en:'Art Classroom', buildingId:13, buildingCn:'艺术楼', buildingEn:'Art Building',
+        floor:'2F', where:'艺术楼 · 2F', offset:[0,7.8,0],
+        fac:[['所在楼栋','艺术楼'],['楼层','2F'],['说明','IB 学生附加教室']]},
+      {key:'physics', no:'P', cn:'物理实验室', en:'Physics Lab', buildingId:19, buildingCn:'2# 实验室', buildingEn:'Science Center 2#',
+        floor:'1F 东南角', where:'2# 实验室 · 1F 东南角', offset:[13.75,1.4,1.5],
+        fac:[['所在楼栋','2# 实验室'],['位置','1F 东南角'],['说明','IB 学生附加教室']]},
+      {key:'biology', no:'B', cn:'生物实验室', en:'Biology Lab', buildingId:12, buildingCn:'综合楼', buildingEn:'Multi-function Building',
+        floor:'1F 西北角', where:'综合楼 · 1F 西北角', offset:[-13,1.4,-3.5],
+        fac:[['所在楼栋','综合楼'],['位置','1F 西北角'],['说明','IB 学生附加教室']]},
+    ];
+
+    /* ───────── SCENE ───────── */
+    const app = document.getElementById('app');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(PAPER);
+
+    const camera = new THREE.PerspectiveCamera(46, innerWidth/innerHeight, 0.1, 1000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'low-power' });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.shadowMap.enabled = false;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.NoToneMapping;
+    app.appendChild(renderer.domElement);
+
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(innerWidth, innerHeight);
+    labelRenderer.domElement.className = 'labels';
+    app.appendChild(labelRenderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0xFFFFFF, 0xD8D4CA, 2.2));
+    scene.add(new THREE.AmbientLight(0xFFFFFF, 1.2));
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(300,300),
+      new THREE.MeshBasicMaterial({ color:PAPER })
+    );
+    ground.rotation.x = -Math.PI/2;
+    ground.position.y = -0.1;
+    scene.add(ground);
+
+    function seededRandom(seed){
+      let state=seed>>>0;
+      return ()=>{
+        state+=0x6D2B79F5;
+        let value=state;
+        value=Math.imul(value^value>>>15,value|1);
+        value^=value+Math.imul(value^value>>>7,value|61);
+        return ((value^value>>>14)>>>0)/4294967296;
+      };
+    }
+
+    function roughStroke(edges,seed,options={}){
+      const random=seededRandom(seed);
+      const amount=options.amount??0.13;
+      const overshoot=options.overshoot??0.08;
+      const opacity=options.opacity??0.9;
+      const positions=[];
+      edges.forEach(([start,end])=>{
+        const direction=end.clone().sub(start);
+        const length=direction.length();
+        direction.normalize();
+        const normalA=Math.abs(direction.y)>0.75
+          ? new THREE.Vector3(1,0,0)
+          : new THREE.Vector3(-direction.z,0,direction.x).normalize();
+        const normalB=new THREE.Vector3().crossVectors(direction,normalA).normalize();
+        const count=Math.max(4,Math.round(length*0.55));
+        let previous=null;
+        for(let i=0;i<=count;i++){
+          const t=i/count;
+          const point=start.clone().lerp(end,t);
+          const fade=Math.sin(t*Math.PI);
+          point.addScaledVector(normalA,(random()-.5)*amount*fade);
+          point.addScaledVector(normalB,(random()-.5)*amount*fade);
+          if(i===0) point.addScaledVector(direction,-overshoot);
+          if(i===count) point.addScaledVector(direction,overshoot);
+          if(previous) positions.push(previous.x,previous.y,previous.z,point.x,point.y,point.z);
+          previous=point;
+        }
+      });
+      const geometry=new THREE.BufferGeometry();
+      geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+      const material=new THREE.LineBasicMaterial({ color:INK, transparent:true, opacity, depthWrite:false });
+      const lines=new THREE.LineSegments(geometry,material);
+      lines.renderOrder=4;
+      return lines;
+    }
+
+    function boxEdges(w,h,d){
+      const x=w/2,z=d/2;
+      const bottom=[[-x,0,-z],[x,0,-z],[x,0,z],[-x,0,z]].map(p=>new THREE.Vector3(...p));
+      const top=bottom.map(p=>new THREE.Vector3(p.x,h,p.z));
+      const edges=[];
+      for(let i=0;i<4;i++){
+        edges.push([bottom[i],bottom[(i+1)%4]],[top[i],top[(i+1)%4]],[bottom[i],top[i]]);
+      }
+      return edges;
+    }
+
+    function addSketchEdges(group,edges,seed,amount=0.13){
+      const first=roughStroke(edges,seed,{amount,opacity:.88,overshoot:.09});
+      const second=roughStroke(edges,seed+911,{amount:amount*1.28,opacity:.36,overshoot:.13});
+      second.position.set(.065,.045,-.05);
+      group.add(first,second);
+      return [first.material,second.material];
+    }
+
+    const campusSketches=[];
+    function flatRect(w,d,color,x,z,y=0.02){
+      const group=new THREE.Group();
+      const near=campusZ(z-d/2),far=campusZ(z+d/2);
+      const scaledDepth=far-near;
+      group.position.set(x,y,(near+far)/2);
+      const fill=new THREE.Mesh(
+        new THREE.PlaneGeometry(w,scaledDepth),
+        new THREE.MeshBasicMaterial({ color:PAPER_STRONG, transparent:true, opacity:.68, side:THREE.DoubleSide })
+      );
+      fill.rotation.x=-Math.PI/2;
+      group.add(fill);
+      const hw=w/2,hd=scaledDepth/2,ly=.045;
+      const edges=[
+        [new THREE.Vector3(-hw,ly,-hd),new THREE.Vector3(hw,ly,-hd)],
+        [new THREE.Vector3(hw,ly,-hd),new THREE.Vector3(hw,ly,hd)],
+        [new THREE.Vector3(hw,ly,hd),new THREE.Vector3(-hw,ly,hd)],
+        [new THREE.Vector3(-hw,ly,hd),new THREE.Vector3(-hw,ly,-hd)]
+      ];
+      addSketchEdges(group,edges,3500+Math.round((x+80)*17+(z+80)*23),.09);
+      scene.add(group);
+      campusSketches.push(group);
+      return group;
+    }
+
+    function rectEdges(w,d,y,cx=0,cz=0){
+      const x=w/2,z=d/2;
+      const points=[
+        new THREE.Vector3(cx-x,y,cz-z),new THREE.Vector3(cx+x,y,cz-z),
+        new THREE.Vector3(cx+x,y,cz+z),new THREE.Vector3(cx-x,y,cz+z)
+      ];
+      return points.map((point,i)=>[point,points[(i+1)%points.length]]);
+    }
+
+    function ovalEdges(rx,rz,y,segments=52,cx=0,cz=0){
+      const edges=[];
+      let previous=new THREE.Vector3(cx+rx,y,cz);
+      for(let i=1;i<=segments;i++){
+        const angle=i/segments*Math.PI*2;
+        const point=new THREE.Vector3(cx+Math.cos(angle)*rx,y,cz+Math.sin(angle)*rz);
+        edges.push([previous,point]);
+        previous=point;
+      }
+      return edges;
+    }
+
+    function fieldEdges(b,h){
+      const [w,d]=b.size;
+      const y=h+.055;
+      const v=(x,z)=>new THREE.Vector3(x,y,z);
+      const edges=[];
+
+      if(b.id===2){
+        const bx=w*.42,bz=d*.40,singlesZ=d*.27,serviceX=w*.17;
+        edges.push(
+          ...rectEdges(bx*2,bz*2,y),
+          [v(0,-bz),v(0,bz)],
+          [v(-bx,-singlesZ),v(bx,-singlesZ)],
+          [v(-bx,singlesZ),v(bx,singlesZ)],
+          [v(-serviceX,-singlesZ),v(-serviceX,singlesZ)],
+          [v(serviceX,-singlesZ),v(serviceX,singlesZ)],
+          [v(-serviceX,0),v(serviceX,0)]
+        );
+      }
+
+      if(b.id===3){
+        edges.push(
+          ...ovalEdges(w*.46,d*.43,y),
+          ...ovalEdges(w*.41,d*.37,y),
+          ...ovalEdges(w*.36,d*.31,y),
+          ...rectEdges(w*.54,d*.43,y),
+          [v(0,-d*.215),v(0,d*.215)],
+          ...ovalEdges(1.25,1.25,y,28),
+          ...rectEdges(w*.075,d*.22,y,-w*.232,0),
+          ...rectEdges(w*.075,d*.22,y,w*.232,0)
+        );
+      }
+
+      if(b.id===7){
+        const courtDepth=d/2,bx=w*.46,bz=courtDepth*.44;
+        const keyW=w*.105,keyD=courtDepth*.46;
+        [-d/4,d/4].forEach(cz=>{
+          edges.push(
+            ...rectEdges(bx*2,bz*2,y,0,cz),
+            [v(0,cz-bz),v(0,cz+bz)],
+            ...ovalEdges(1.05,1.05,y,28,0,cz),
+            ...rectEdges(keyW,keyD,y,-bx+keyW/2,cz),
+            ...rectEdges(keyW,keyD,y,bx-keyW/2,cz),
+            ...ovalEdges(.22,.22,y,14,-bx+1,cz),
+            ...ovalEdges(.22,.22,y,14,bx-1,cz)
+          );
+        });
+        edges.push([v(-w*.49,0),v(w*.49,0)]);
+      }
+      return edges;
+    }
+
+    /* Campus base, track, lawn and circulation surfaces */
+    flatRect(116, 96, 0xC9D0CA, 0, -2, 0.01);
+    flatRect(36, 18, 0xB86D62, 0, -22, 0.02);
+    flatRect(30, 22, 0x71916D, 0, 18, 0.03);
+    flatRect(4, 20, 0xAEB8B7, -12, 18, 0.04);
+    flatRect(4, 20, 0xAEB8B7,  12, 18, 0.04);
+    /* Entrance plaza + main path */
+    flatRect(24, 12, 0xB9C1BF, 0, 41, 0.03);
+    flatRect(9, 20, 0xD6DAD5, 0, 31, 0.04);
+    /* Perimeter ring path */
+    flatRect(104, 4, 0xD6DAD5, 0, -40, 0.025);
+
+    /* ───────── BUILDER ───────── */
+    const groups = {};
+    const pickMeshes = [];
+
+    function buildFacility(b){
+      const g=new THREE.Group();
+      const [w,d]=b.size;
+      const isField=!!(b.flat||b.open);
+      const h=isField?0.32:b.h;
+      const lowProfile=!!(isField||b.locker);
+      const fillMat=new THREE.MeshBasicMaterial({
+        color:PAPER_STRONG, transparent:true, opacity:1,
+        polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1
+      });
+      const fillMats=[fillMat];
+      const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),fillMat);
+      body.position.y=h/2;
+      body.userData.pick=b.id;
+      g.add(body);
+
+      const lineMats=addSketchEdges(g,boxEdges(w,h,d),5000+b.id*47,isField?.07:.15);
+      if(isField){
+        const markings=fieldEdges(b,h);
+        const markMats=addSketchEdges(g,markings,6200+b.id,.038);
+        lineMats.push(...markMats);
+      }
+      if(b.open&&b.halfRoof){
+        const roofDepth=d/2,roofZ=-d/4,roofH=b.h;
+        const roofW=w+1,roofD=roofDepth+.8;
+        const roofMat=new THREE.MeshBasicMaterial({
+          color:PAPER_STRONG,transparent:true,opacity:.3,
+          side:THREE.DoubleSide,depthWrite:false
+        });
+        const roof=new THREE.Mesh(new THREE.PlaneGeometry(roofW,roofD),roofMat);
+        roof.rotation.x=-Math.PI/2;
+        roof.position.set(0,roofH,roofZ);
+        roof.renderOrder=3;
+        g.add(roof);
+        fillMats.push(roofMat);
+
+        const topY=roofH+.035,underY=roofH-.3;
+        const canopyEdges=[
+          ...rectEdges(roofW,roofD,topY,0,roofZ),
+          ...rectEdges(roofW,roofD,underY,0,roofZ)
+        ];
+        const hx=roofW/2,hz=roofD/2;
+        [[-hx,-hz],[hx,-hz],[hx,hz],[-hx,hz]].forEach(([x,z])=>{
+          canopyEdges.push([
+            new THREE.Vector3(x,underY,roofZ+z),
+            new THREE.Vector3(x,topY,roofZ+z)
+          ]);
+        });
+        const postX=[-w/2+1,0,w/2-1];
+        const postZ=[roofZ-roofDepth/2+.45,roofZ+roofDepth/2-.45];
+        postX.forEach(x=>postZ.forEach(z=>{
+          canopyEdges.push([
+            new THREE.Vector3(x,h+.03,z),
+            new THREE.Vector3(x,underY,z)
+          ]);
+        }));
+        lineMats.push(...addSketchEdges(g,canopyEdges,6800+b.id,.055));
+      }
+
+      g.position.set(b.pos[0],0,campusZ(b.pos[1]));
+      g.userData={
+        id:b.id,h,size:b.size,mats:fillMats,fillMats,lineMats,flat:lowProfile,
+        liftH:lowProfile?.25:.7,liftA:lowProfile?.48:1.35
+      };
+
+      const div = document.createElement('div');
+      div.className = 'pin' + (lowProfile?' flat':'') + ([13,14,16].includes(b.id)?' important':'');
+      div.textContent = b.id; div.dataset.id = b.id;
+      const label = new CSS2DObject(div);
+      label.position.set(0,
+        b.pinY!=null ? b.pinY : (b.open?b.h+3:h+4.5),
+        b.open&&b.halfRoof ? -b.size[1]/4 : 0);
+      g.add(label); g.userData.pinEl = div;
+
+      scene.add(g);
+      groups[b.id] = g;
+      const allMats=[];
+      g.traverse(o=>{
+        if(o.isMesh&&o.userData.pick) pickMeshes.push(o);
+        if(o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+          m.userData.baseOpacity=m.opacity;
+          m.userData.baseTransparent=m.transparent;
+          m.userData.baseDepthWrite=m.depthWrite;
+          allMats.push(m);
+        });
+      });
+      g.userData.allMats = allMats; g.userData.opacity = 1;
+    }
+    BUILDINGS.forEach(buildFacility);
+    function extraWorld(extra){
+      const building=groups[extra.buildingId];
+      return new THREE.Vector3(
+        building.position.x+extra.offset[0],
+        extra.offset[1],
+        building.position.z+extra.offset[2]
+      );
+    }
+    const extraMarkers = {};
+    EXTRA_CLASSROOMS.forEach(extra=>{
+      const p = extraWorld(extra);
+      const root = new THREE.Group();
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.72,24,16),
+        new THREE.MeshBasicMaterial({ color:ACCENT, depthTest:false, depthWrite:false }));
+      dot.position.copy(p); dot.renderOrder=12; root.add(dot);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.02,0.08,8,36),
+        new THREE.MeshBasicMaterial({ color:INK, depthTest:false, depthWrite:false }));
+      ring.position.set(p.x, p.y-0.05, p.z); ring.rotation.x = Math.PI/2; ring.renderOrder=12; root.add(ring);
+      const div = document.createElement('div');
+      div.className = 'extra-tag';
+      div.innerHTML = `<span class="dot"></span><span class="label">${extra.cn}</span>`;
+      div.style.display = 'none';
+      const label = new CSS2DObject(div);
+      label.position.set(p.x, p.y+2.15, p.z);
+      root.add(label);
+      root.visible = false;
+      scene.add(root);
+      extraMarkers[extra.key] = { root, dot, ring, label, el:div };
+    });
+    function setExtraMarkerVisible(key, visible){
+      const marker = extraMarkers[key];
+      if(!marker) return;
+      marker.root.visible = visible;
+      marker.dot.visible = visible;
+      marker.ring.visible = visible;
+      marker.label.visible = visible;
+      marker.el.style.display = visible ? '' : 'none';
+    }
+    function hideExtraMarkers(){
+      EXTRA_CLASSROOMS.forEach(extra=> setExtraMarkerVisible(extra.key, false));
+    }
+
+    /* Decorative trees are intentionally omitted: the map stays diagrammatic. */
+    const treeMeshes = [];
+
+    /* ───────── CONTROLS ───────── */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.11;
+    controls.minDistance = 28; controls.maxDistance = 300;
+    controls.maxPolarAngle = 1.45; controls.minPolarAngle = 0.15;
+
+    const OVERVIEW_POS = new THREE.Vector3(30, 70, campusZ(96));
+    const OVERVIEW_TAR = new THREE.Vector3(0, 4, campusZ(-2));
+    const COMPASS_HOME = Math.atan2(
+      OVERVIEW_POS.x-OVERVIEW_TAR.x,
+      OVERVIEW_POS.z-OVERVIEW_TAR.z
+    );
+    const FLOOR_POS = new THREE.Vector3(-37,46,60);
+    const FLOOR_TAR = new THREE.Vector3(-37,1,22);
+    /* portrait / narrow screens → pull the overview back so the whole campus fits */
+    function ovPos(){
+      const a = innerWidth/innerHeight;
+      const k = a >= 1.3 ? 1 : Math.min(2.5, 1.3/Math.max(a, 0.45));
+      return OVERVIEW_TAR.clone().add(OVERVIEW_POS.clone().sub(OVERVIEW_TAR).multiplyScalar(k));
+    }
+    function floorPos(){
+      const a=innerWidth/innerHeight;
+      const k=a>=1 ? 1 : Math.min(1.7,1+(1-a)*1.1);
+      return FLOOR_TAR.clone().add(FLOOR_POS.clone().sub(FLOOR_TAR).multiplyScalar(k));
+    }
+    controls.target.copy(OVERVIEW_TAR);
+    camera.position.set(50, 140, 168);
+
+    /* ───────── CAMERA TWEEN ───────── */
+    let tween = null;
+    const easeIO = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+    function flyTo(toPos, toTar, dur=1100){
+      const p0 = camera.position.clone(), t0 = controls.target.clone();
+      const start = performance.now();
+      controls.enabled = false;
+      tween = (now)=>{
+        const k = Math.min(1,(now-start)/dur), e = easeIO(k);
+        camera.position.lerpVectors(p0,toPos,e);
+        controls.target.lerpVectors(t0,toTar,e);
+        camera.lookAt(controls.target);
+        if(k>=1){ tween=null; controls.enabled=true; }
+      };
+    }
+
+    /* ───────── SELECTION ───────── */
+    let selectedId=null, selectedExtraKey=null, hoveredId=null, pinHoverId=null;
+    let hiddenIds = new Set(), currentMode = 'campus';
+    function getExtra(key){ return EXTRA_CLASSROOMS.find(x=>x.key===key); }
+    function clearExtraSelection(){
+      selectedExtraKey = null;
+      hideExtraMarkers();
+      Object.values(groups).forEach(g=>{ if(!hiddenIds.has(g.userData.id)) g.userData.opacity = 1; });
+      setActiveExtra(null);
+    }
+    function selectBuilding(id){
+      clearExtraSelection();
+      selectedId = id;
+      const g=groups[id], s=g.userData.size, h=g.userData.h, c=g.position;
+      const reach = (Math.max(s[0], s[1], h)*1.5 + 24) * (innerWidth/innerHeight < 1 ? 1.4 : 1);
+      const isField=!!g.userData.flat;
+      if(isField){
+        Object.values(groups).forEach(item=>{ item.userData.opacity=item.userData.id===id?1:.16; });
+      }
+      const pos = isField
+        ? new THREE.Vector3(c.x + reach*.16, reach*.92, c.z + reach*.30)
+        : new THREE.Vector3(c.x + reach*.55, Math.max(h,6)*.85 + reach*.5, c.z + reach*.9);
+      const fieldTargetY=isField&&innerHeight>innerWidth ? -26 : .08;
+      const tar = new THREE.Vector3(c.x, isField ? fieldTargetY : Math.max(h,4)*.45, c.z);
+      flyTo(pos,tar,1100); showCard(id); setActive(id);
+    }
+    function selectExtraClassroom(key){
+      const extra = getExtra(key);
+      const b = BUILDINGS.find(x=>x.id===extra.buildingId);
+      if(currentMode!=='campus'){
+        currentMode = 'campus';
+        floorCut.visible = false;
+        floorLabels.forEach(l=> l.visible = false);
+        campusSketches.forEach(item=> item.visible = true);
+        setTreesVisible(true);
+        modebar.querySelectorAll('.mode').forEach(btn=> btn.classList.toggle('active', btn.dataset.mode==='campus'));
+        moveInd(modebar.querySelector('.mode[data-mode="campus"]'));
+      }
+      selectedId = null;
+      selectedExtraKey = key;
+      hiddenIds = new Set();
+      EXTRA_CLASSROOMS.forEach(item=> setExtraMarkerVisible(item.key, item.key===key));
+      Object.values(groups).forEach(g=>{ g.userData.opacity = g.userData.id===extra.buildingId ? 1 : 0.18; });
+      const target = extraWorld(extra);
+      const portrait = innerHeight > innerWidth;
+      const reach = (Math.max(b.size[0], b.size[1], b.h)*1.25 + 24) * (innerWidth/innerHeight < 1 ? 1.35 : 1);
+      const pos = new THREE.Vector3(target.x + reach*0.58, target.y + reach*0.58 + 8, target.z + reach*0.86);
+      const safeLift = portrait ? Math.min(10,5+b.h*.3) : 0;
+      const tar = new THREE.Vector3(target.x, target.y-safeLift, target.z);
+      flyTo(pos, tar, 1100);
+      showExtraCard(extra);
+      setActive(null);
+      setActiveExtra(key);
+    }
+    function deselect(){
+      selectedId=null; clearExtraSelection(); document.getElementById('card').classList.remove('show'); setActive(null);
+      if(currentMode==='campus') flyTo(ovPos(),OVERVIEW_TAR,1100);
+    }
+
+    /* ───────── UI ───────── */
+    const card = document.getElementById('card');
+    function showCard(id){
+      const b = BUILDINGS.find(x=>x.id===id);
+      document.getElementById('cardNum').textContent = id;
+      document.getElementById('cardEn').textContent = b.en;
+      document.getElementById('cardCn').textContent = b.cn;
+      document.querySelector('.card-lbl').textContent = 'Facilities · 设施';
+      document.getElementById('cardFac').innerHTML = b.fac.map(f=>
+        `<div class="fac"><span class="dot"></span><span class="fcn">${f[0]}</span><span class="fen">${f[1]}</span></div>`).join('');
+      card.classList.add('show');
+    }
+    function showExtraCard(extra){
+      document.getElementById('cardNum').textContent = extra.no;
+      document.getElementById('cardEn').textContent = extra.en;
+      document.getElementById('cardCn').textContent = extra.cn;
+      document.querySelector('.card-lbl').textContent = 'Location · 位置';
+      document.getElementById('cardFac').innerHTML = extra.fac.map(f=>
+        `<div class="fac"><span class="dot"></span><span class="fcn">${f[0]}</span><span class="fen">${f[1]}</span></div>`).join('');
+      card.classList.add('show');
+    }
+    /* ── Floor-1 interiors for buildings 16 & 14 (from design plan) ── */
+    const ROOM_COLORS = {
+      classroom:0xFFFDF6, office:0xF3EEE1, toilet:0xECEAE4, meeting:0xF6F1E6,
+      rest:0xF7E6A7, storage:0xE9E6DE, computer:0xF4E8D2, corridor:0xF6F2E8, room:0xEFEBE2, exit:INK,
+      open:0xFFFDF6
+    };
+    const ROOMS16 = [
+      {code:'C01', type:'office'},
+      {code:'C02', name:'储藏室', type:'storage'},
+      {code:'C03', name:'办公室', type:'office'},
+      {code:'C04', type:'room'}, {code:'C05', type:'room'}, {code:'C06', type:'room'},
+      {code:'C07', type:'room'}, {code:'C08', type:'room'}, {code:'C09', type:'room'},
+      {code:'C10', name:'办公室', type:'office'},
+    ];
+    const ROOMS14W = [   // spans roughly match the heights drawn in the sketch
+      {code:'A101', type:'classroom', span:1.0}, {code:'男厕', type:'toilet', span:.42},
+      {code:'A102', type:'classroom', span:.9},  {code:'A103', type:'classroom', span:1.4},
+      {code:'A104', type:'classroom', span:1.3}, {code:'A105', type:'classroom', span:1.0},
+      {code:'女厕', type:'toilet', span:.42},     {code:'A106', type:'classroom', span:1.15},
+    ];
+
+    const floorLabels = [];   // CSS2D labels for the floor plans — only shown in IB-interior mode
+    const floorCut = (function buildInteriors(){
+      const root = new THREE.Group();
+      const FH=3.2, WH=2.6, WT=0.25;
+      const baseMat = new THREE.MeshBasicMaterial({ color:PAPER_STRONG });
+      const wallMat = new THREE.MeshBasicMaterial({ color:0x77736A, side:THREE.DoubleSide });
+      const edgeMat = new THREE.LineBasicMaterial({ color:INK, transparent:true, opacity:.72 });
+      const tileMats = {};
+      const tileMat = t => tileMats[t] || (tileMats[t]=new THREE.MeshBasicMaterial({ color:ROOM_COLORS[t]??ROOM_COLORS.room }));
+      /* wall = thin raised box (the "lines" from the plan) */
+      function wall(g,w,d,x,z,h){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,h/2+0.3,z); m.castShadow=true; m.receiveShadow=true; g.add(m); }
+      const hWall=(g,x0,x1,z)=> wall(g, x1-x0, WT, (x0+x1)/2, z, WH);
+      const vWall=(g,z0,z1,x)=> wall(g, WT, z1-z0, x, (z0+z1)/2, WH);
+      function perimeter(g,w,d){
+        const hw=w/2, hd=d/2;
+        const base=new THREE.Mesh(new THREE.BoxGeometry(w,0.3,d), baseMat); base.position.y=0.15; base.receiveShadow=true; g.add(base);
+        wall(g, w+WT, WT, 0,-hd, FH); wall(g, w+WT, WT, 0, hd, FH);
+        wall(g, WT, d, -hw,0, FH);    wall(g, WT, d, hw,0, FH);
+        const ey=FH+0.3;
+        g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+          [[-hw,ey,-hd],[hw,ey,-hd],[hw,ey,hd],[-hw,ey,hd],[-hw,ey,-hd]].map(p=>new THREE.Vector3(...p))), edgeMat));
+      }
+      function tileCell(g,x0,x1,z0,z1,r){
+        const tile=new THREE.Mesh(new THREE.BoxGeometry((x1-x0)-0.3,0.5,(z1-z0)-0.3), tileMat(r.type));
+        tile.position.set((x0+x1)/2,0.3,(z0+z1)/2); tile.receiveShadow=true; g.add(tile);
+        if(!r.code) return;                          // unlabeled tile (e.g. corridor strip)
+        const div=document.createElement('div'); div.className='room-lbl room-'+(r.type||'room');
+        div.innerHTML=`<b>${r.code}</b>`+(r.name?`<small>${r.name}</small>`:'');
+        const lb=new CSS2DObject(div); lb.position.set((x0+x1)/2,2.3,(z0+z1)/2); lb.visible=false; g.add(lb); floorLabels.push(lb);
+      }
+      function title(g,text,z){ const div=document.createElement('div'); div.className='floor-title'; div.textContent=text;
+        const lb=new CSS2DObject(div); lb.position.set(0,FH+3,z); lb.visible=false; g.add(lb); floorLabels.push(lb); }
+
+      /* Building 16 — 10 rooms filling one column, walls between */
+      const g16=new THREE.Group(); const W16=8, D16=30, n=ROOMS16.length;
+      perimeter(g16,W16,D16);
+      for(let i=0;i<n;i++){
+        const z0=-D16/2 + i*D16/n, z1=z0+D16/n;
+        if(i===0){
+          /* C01: two 1/4 rooms on the west side — Miranda (north), Hudson (south) */
+          const xMid=0, zMid=(z0+z1)/2;
+          tileCell(g16, xMid, W16/2, z0, z1, ROOMS16[0]);                       // east half stays C01
+          tileCell(g16, -W16/2, xMid, z0, zMid, {code:'Miranda', type:'office'});
+          tileCell(g16, -W16/2, xMid, zMid, z1, {code:'Hudson',  type:'office'});
+          vWall(g16, z0, z1, xMid);            // wall between west sub-rooms and C01
+          hWall(g16, -W16/2, xMid, zMid);      // wall between Miranda and Hudson
+        } else {
+          tileCell(g16,-W16/2,W16/2,z0,z1,ROOMS16[i]);
+          hWall(g16,-W16/2,W16/2,z0);
+        }
+      }
+      title(g16,'IB 楼 · 1F', -D16/2-2);
+      g16.position.set(-47,0,22); root.add(g16);
+
+      /* Building 14 — near 1:1 of the sketch:
+         west wall = classrooms + toilets · central N-S corridor ·
+         east band = computer room (top-left, L-corridor wrapping it) then three
+         open zones down the east wall — 办公室, student center (flanked by 会议室
+         + 休息区), and lab (its own full cell) — separated by walled corridors. */
+      const g14=new THREE.Group(); const W14=16, D14=30, HD=D14/2;
+      perimeter(g14,W14,D14);
+
+      // west classroom band ---------------------------------------------
+      const wX0=-W14/2, wX1=-4.6;
+      const totalW=ROOMS14W.reduce((s,r)=>s+(r.span||1),0); let z=-HD;
+      for(let i=0;i<ROOMS14W.length;i++){
+        const r=ROOMS14W[i], z0=z, z1=z+D14*(r.span||1)/totalW;
+        tileCell(g14,wX0,wX1,z0,z1,r);
+        if(i>0) hWall(g14,wX0,wX1,z0);
+        z=z1;
+      }
+      vWall(g14,-HD,HD,wX1);                          // wall: classrooms | corridor
+
+      // central corridor ------------------------------------------------
+      const cX0=wX1, cX1=-2.2;
+      tileCell(g14, cX0, cX1, -HD, HD, {code:'走廊', type:'corridor'});
+
+      // east band -------------------------------------------------------
+      const eX0=cX1, eX1=W14/2, sMid=0.2;
+      const corT=1.5;                                 // cross-corridor thickness
+      // computer room (top-left) + L-corridor wrapping its right & bottom
+      const compX=eX0+0.52*(eX1-eX0), compZ=-10, cor1=-8.5;
+      const r1a=cor1, r1b=-3.5;
+      const r2a=r1b+corT, r2b=9.5, r2m=(r2a+r2b)/2;
+      vWall(g14, -HD, compZ, cX1);                    // corridor | east band, with three openings
+      vWall(g14, cor1, r1b, cX1);
+      vWall(g14, r1b+corT, r2b, cX1);
+      vWall(g14, r2b+corT, HD, cX1);
+      tileCell(g14, eX0, compX, -HD, compZ, {code:'计算机教室', type:'computer'});
+      tileCell(g14, compX, eX1, -HD, cor1, {type:'corridor'});   // right of computer room
+      tileCell(g14, eX0, compX, compZ, cor1, {type:'corridor'}); // below computer room
+      vWall(g14, -HD, compZ, compX);                  // computer room east wall
+      hWall(g14, eX0, compX, compZ);                  // computer room south wall
+      hWall(g14, eX0, eX1, cor1);                     // corridor1 south wall = row-1 north
+
+      // row 1 — 会议室 (small) | 办公室 (open)
+      tileCell(g14, eX0, sMid, r1a, r1b, {code:'会议室', type:'meeting'});
+      tileCell(g14, sMid, eX1, r1a, r1b, {code:'办公室', type:'open'});
+      vWall(g14, r1a, r1b, sMid);
+      // cross-corridor (walls both sides)
+      tileCell(g14, eX0, eX1, r1b, r1b+corT, {type:'corridor'});
+      hWall(g14, eX0, eX1, r1b); hWall(g14, eX0, eX1, r1b+corT);
+
+      // row 2 — 会议室 + 休息区 (small, stacked) | student center (open)
+      tileCell(g14, eX0, sMid, r2a, r2m, {code:'会议室', type:'meeting'});
+      tileCell(g14, eX0, sMid, r2m, r2b, {code:'休息区', type:'rest'});
+      hWall(g14, eX0, sMid, r2m);
+      tileCell(g14, sMid, eX1, r2a, r2b, {code:'student center', type:'open'});
+      vWall(g14, r2a, r2b, sMid);
+      // cross-corridor (walls both sides)
+      tileCell(g14, eX0, eX1, r2b, r2b+corT, {type:'corridor'});
+      hWall(g14, eX0, eX1, r2b); hWall(g14, eX0, eX1, r2b+corT);
+
+      // row 3 — lab alone in its own full cell
+      tileCell(g14, eX0, eX1, r2b+corT, HD, {code:'lab', type:'open'});
+
+      title(g14,'剑桥楼 · 1F', -HD-2);
+      g14.position.set(-31,0,22); root.add(g14);
+
+      root.visible=false; scene.add(root);
+      return root;
+    })();
+
+    /* ── Top slide-bar modes ── */
+    const modebar = document.getElementById('modebar');
+    const modeInd = document.getElementById('modeInd');
+    function moveInd(btn){ if(btn){ modeInd.style.left = btn.offsetLeft+'px'; modeInd.style.width = btn.offsetWidth+'px'; } }
+    function setTreesVisible(v){ treeMeshes.forEach(m=> m.visible = v); }
+    function setMode(mode){
+      currentMode = mode;
+      card.classList.remove('show'); selectedId=null; clearExtraSelection(); setActive(null);
+      floorCut.visible = (mode==='floor');
+      floorLabels.forEach(l=> l.visible = (mode==='floor'));
+      campusSketches.forEach(item=> item.visible = (mode==='campus'));
+      if(mode==='campus'){
+        hiddenIds = new Set(); setTreesVisible(true);
+        flyTo(ovPos(), OVERVIEW_TAR, 1300);
+      } else if(mode==='floor'){
+        /* IB interior = ground-floor plans of 16 & 14 */
+        hiddenIds = new Set(BUILDINGS.map(b=>b.id));
+        setTreesVisible(false);
+        flyTo(floorPos(), FLOOR_TAR, 1600);
+      }
+    }
+    function activateMode(mode){
+      const btn = modebar.querySelector(`.mode[data-mode="${mode}"]`);
+      modebar.querySelectorAll('.mode').forEach(b=> b.classList.toggle('active', b===btn));
+      moveInd(btn); setMode(mode);
+    }
+    modebar.querySelectorAll('.mode').forEach(btn=> btn.onclick = ()=> activateMode(btn.dataset.mode));
+    requestAnimationFrame(()=> moveInd(modebar.querySelector('.mode.active')));
+    addEventListener('resize', ()=> moveInd(modebar.querySelector('.mode.active')));
+
+    document.getElementById('cardClose').onclick = ()=> activateMode('campus');
+    document.getElementById('resetBtn').onclick = ()=> activateMode('campus');
+
+    const guideList = document.getElementById('guideList');
+    guideList.innerHTML = `
+      <div class="guide-section">
+        ${BUILDINGS.map(b=>`
+          <div class="gitem" data-id="${b.id}">
+            <span class="n">${b.id}</span>
+            <span class="tx"><div class="cn">${b.cn}</div><div class="en">${b.en}</div></span>
+          </div>`).join('')}
+      </div>
+      <div class="guide-section">
+        <div class="guide-section-title">IB学生附加教室</div>
+        ${EXTRA_CLASSROOMS.map(extra=>`
+          <div class="gitem extra" data-extra="${extra.key}">
+            <span class="n">${extra.no}</span>
+            <span class="tx"><div class="cn">${extra.cn}</div><div class="en">${extra.where}</div></span>
+          </div>`).join('')}
+      </div>`;
+    guideList.querySelectorAll('.gitem[data-id]').forEach(el=> el.onclick = ()=>{
+      selectBuilding(+el.dataset.id);
+      document.querySelector('.guide').classList.remove('open');
+      if(guideToggle) guideToggle.textContent = '☰ 导览';
+    });
+    guideList.querySelectorAll('.gitem[data-extra]').forEach(el=> el.onclick = ()=>{
+      selectExtraClassroom(el.dataset.extra);
+      document.querySelector('.guide').classList.remove('open');
+      if(guideToggle) guideToggle.textContent = '☰ 导览';
+    });
+    const guideToggle = document.getElementById('guideToggle');
+    if(guideToggle) guideToggle.onclick = ()=>{
+      const isOpen = document.querySelector('.guide').classList.toggle('open');
+      guideToggle.textContent = isOpen ? '× 关闭' : '☰ 导览';
+    };
+    function setActive(id){
+      guideList.querySelectorAll('.gitem[data-id]').forEach(el=> el.classList.toggle('active', +el.dataset.id===id));
+      const act = guideList.querySelector('.gitem[data-id].active');
+      if(act) act.scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+    function setActiveExtra(key){
+      guideList.querySelectorAll('.gitem[data-extra]').forEach(el=> el.classList.toggle('active', el.dataset.extra===key));
+      const act = guideList.querySelector('.gitem[data-extra].active');
+      if(act) act.scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+
+    Object.values(groups).forEach(g=>{
+      const el=g.userData.pinEl, id=g.userData.id;
+      el.onclick = e=>{ e.stopPropagation(); selectBuilding(id); };
+      el.onmouseenter = ()=> pinHoverId=id;
+      el.onmouseleave = ()=>{ if(pinHoverId===id) pinHoverId=null; };
+    });
+
+    /* ───────── PICKING ───────── */
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    let pointerIn=false, down=null;
+    renderer.domElement.addEventListener('pointermove', e=>{
+      pointerIn=true; ndc.x=(e.clientX/innerWidth)*2-1; ndc.y=-(e.clientY/innerHeight)*2+1;
+    });
+    renderer.domElement.addEventListener('pointerleave', ()=> pointerIn=false);
+    renderer.domElement.addEventListener('pointerdown', e=>{ down={x:e.clientX,y:e.clientY}; });
+    renderer.domElement.addEventListener('pointerup', e=>{
+      if(!down) return;
+      const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y); down=null;
+      if(moved>10) return;
+      ndc.x=(e.clientX/innerWidth)*2-1; ndc.y=-(e.clientY/innerHeight)*2+1;   // tap point (esp. touch)
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(pickMeshes, false);
+      if(hits.length) selectBuilding(hits[0].object.userData.pick);
+      else if(selectedId!==null || selectedExtraKey!==null) deselect();
+    });
+
+    addEventListener('resize', ()=>{
+      camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+    });
+
+    /* ───────── LOOP ───────── */
+    const needle = document.getElementById('needle');
+    const fillDefault = new THREE.Color(PAPER_STRONG);
+    const fillHover = new THREE.Color(0xF9E8A4);
+    const fillActive = new THREE.Color(ACCENT);
+    function animate(){
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      if(tween) tween(now); else controls.update();
+
+      if(!tween && pointerIn){
+        raycaster.setFromCamera(ndc, camera);
+        const hits = raycaster.intersectObjects(pickMeshes, false);
+        const rayId = hits.length ? hits[0].object.userData.pick : null;
+        hoveredId = pinHoverId!==null ? pinHoverId : rayId;
+        renderer.domElement.style.cursor = hoveredId ? 'pointer' : 'grab';
+      } else hoveredId = pinHoverId;
+
+      const activeExtra = selectedExtraKey ? getExtra(selectedExtraKey) : null;
+      for(const g of Object.values(groups)){
+        const id=g.userData.id, active=id===selectedId || (activeExtra && id===activeExtra.buildingId), hover=id===hoveredId;
+        const tLift = active ? g.userData.liftA : hover ? g.userData.liftH : 0;
+        g.position.y += (tLift - g.position.y)*0.23;
+        const targetColor=active?fillActive:hover?fillHover:fillDefault;
+        g.userData.fillMats.forEach(m=>m.color.lerp(targetColor,.16));
+        /* fade out non-focused buildings in isolate modes */
+        const vis = hiddenIds.has(id) ? 0 : activeExtra ? (id===activeExtra.buildingId ? 1 : 0.18) : 1;
+        g.userData.opacity += (vis - g.userData.opacity)*0.18;
+        const op = g.userData.opacity;
+        const extraShell = !!(activeExtra && id===activeExtra.buildingId);
+        g.visible = op > 0.02;
+        g.userData.allMats.forEach(m=>{
+          const baseOpacity=m.userData.baseOpacity??1;
+          const isFill=g.userData.fillMats.includes(m);
+          const shellOpacity=innerHeight>innerWidth ? .2 : .28;
+          const ghostFill=extraShell&&isFill;
+          const fadedFill=isFill&&op<.985;
+          m.transparent=!!m.userData.baseTransparent||op<.985||extraShell;
+          m.opacity=ghostFill ? shellOpacity*baseOpacity : op*baseOpacity;
+          m.depthWrite=ghostFill||fadedFill ? false : m.userData.baseDepthWrite;
+        });
+        g.userData.pinEl.style.opacity = op;
+        g.userData.pinEl.style.pointerEvents = op > 0.5 ? 'auto' : 'none';
+        g.userData.pinEl.classList.toggle('active', active);
+        g.userData.pinEl.classList.toggle('hover', hover && !active);
+      }
+
+      needle.style.transform = `rotate(${COMPASS_HOME-controls.getAzimuthalAngle()}rad)`;
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+    }
+    animate();
+
+    requestAnimationFrame(()=>{
+      flyTo(ovPos(), OVERVIEW_TAR, 2000);
+      setTimeout(()=> document.getElementById('loader').classList.add('hide'), 350);
+    });
+  </script>
+</body>
+</html>
