@@ -4,9 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>欢迎 · 领科 IB 校园导览</title>
+<link rel="preload" href="assets/campus-960.avif" as="image" type="image/avif" media="(max-width: 899px)" fetchpriority="high" />
+<link rel="preload" href="assets/campus-1440.avif" as="image" type="image/avif" media="(min-width: 900px)" fetchpriority="high" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet" /></noscript>
 <style>
   :root {
     --ink: #102f47;
@@ -43,12 +46,25 @@
     position: absolute;
     inset: 0;
     z-index: 0;
-    background:
-      linear-gradient(135deg, var(--sky) 0%, var(--sky-2) 100%);
-    background-image: url("assets/campus.png");
+    background-color: var(--sky-2);
+    background-image: url("assets/campus-960.webp");
+    background-image: image-set(
+      url("assets/campus-960.avif") type("image/avif"),
+      url("assets/campus-960.webp") type("image/webp")
+    );
     background-size: cover;
     background-position: center 31%;
     filter: saturate(.86) contrast(1.04);
+  }
+
+  @media (min-width: 900px) {
+    .bg {
+      background-image: url("assets/campus-1440.webp");
+      background-image: image-set(
+        url("assets/campus-1440.avif") type("image/avif"),
+        url("assets/campus-1440.webp") type("image/webp")
+      );
+    }
   }
 
   /* legibility scrims — keep top airy, anchor text at the bottom-left */
