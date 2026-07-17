@@ -960,10 +960,10 @@
     /* ───────── CONTROLS ───────── */
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.11;
-    controls.minDistance = 28; controls.maxDistance = 325;
+    controls.minDistance = 28; controls.maxDistance = 355;
     controls.maxPolarAngle = 1.45; controls.minPolarAngle = 0.15;
 
-    const OVERVIEW_SCALE = 1.08;
+    const OVERVIEW_SCALE = 1.18;
     const OVERVIEW_POS = new THREE.Vector3(30, 70, campusZ(96));
     const OVERVIEW_TAR = new THREE.Vector3(0, 4, campusZ(-2));
     const COMPASS_HOME = Math.atan2(
